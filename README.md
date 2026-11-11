@@ -346,9 +346,87 @@ SELECT * FROM trip_events ORDER BY id DESC;
 - **409 Conflict**: 이미 진행된 운행 상태를 다시 변경하려 하거나 필요한 선행 단계가 끝나지 않았는지 확인합니다.
 - **운행에 아이나 정류장이 없음**: 운행 전에 route stops를 저장하고, 아이의 노선·차량·정류장 배정과 적용 날짜를 확인합니다.
 
-## 참고: 개발 환경 제한
+## 11. 도착·하차 푸시(FCM) 실제 수신 확인
+
+서버는 정류장 도착 처리 때 해당 정류장에 배정된 아이의 보호자에게 `ARRIVED` 알림을 만들고, `CHILD_DROPPED_OFF` 또는 `CHILD_RECEIVED_BY_ORG` 운행 이벤트가 들어오면 `DROPPED_OFF` 알림을 만듭니다. Firebase 설정이 없으면 알림은 DB에 `PENDING`으로 남아서 서버의 기본 실행에는 영향을 주지 않습니다.
+
+### 11-1. Firebase 서비스 계정 키 준비
+
+1. Firebase Console에서 사용할 Firebase 프로젝트를 엽니다. 테스트용 앱의 FCM 등록 토큰과 서버 키는 **같은 Firebase 프로젝트**에 속해야 합니다.
+2. 프로젝트 설정의 **서비스 계정** 탭에서 비공개 키(JSON)를 생성해 다운로드합니다.
+3. JSON 파일은 프로젝트/Git 폴더 바깥에 보관합니다. 예: `C:\Users\SSAFY\firebase-keys\tayotayo-service-account.json`. 이 파일을 채팅이나 Git에 올리지 않습니다.
+4. Firebase Console의 Cloud Messaging 설정에서 Firebase Cloud Messaging API가 활성화되어 있는지 확인합니다.
+
+### 11-2. STS에 Firebase 환경 변수 입력
+
+1. Gradle 의존성을 반영하려고 프로젝트 우클릭 > **Gradle > Refresh Gradle Project**를 한 번 실행합니다.
+2. **Run > Run Configurations... > Spring Boot App > TayoTayoBackendApplication**을 선택합니다.
+3. **Environment** 탭에서 아래 변수를 추가합니다. 파일 경로와 프로젝트 ID는 실제 값으로 바꿉니다.
+
+   - `FIREBASE_ENABLED` = `true`
+   - `FIREBASE_CREDENTIALS_PATH` = `C:\Users\SSAFY\firebase-keys\tayotayo-service-account.json`
+   - `FIREBASE_PROJECT_ID` = Firebase 프로젝트 설정에 표시된 프로젝트 ID
+
+4. **Apply > Run**으로 서버를 시작합니다. 키 파일 경로가 틀리거나 JSON이 유효하지 않으면 시작 로그에 원인이 표시됩니다. 서비스 계정 JSON은 Firebase Console의 **프로젝트 설정 > 서비스 계정 > 새 비공개 키 생성**에서 받습니다. 앱용 `google-services.json`은 서버 키가 아닙니다. `FIREBASE_ENABLED`가 `false`이거나 설정이 빠지면 서버는 실행되지만 실제 푸시 발송은 꺼져 있습니다. 설정 전에 생성된 도착·하차 알림은 `PENDING`으로 남고, FCM이 켜진 상태로 서버를 시작하면 다시 발송을 시도합니다.
+
+`FIREBASE_PROJECT_ID`에는 Firebase 화면의 프로젝트 표시 이름이 아니라 **프로젝트 설정 > 일반**의 프로젝트 ID를 넣습니다. 서비스 계정 JSON 안의 `project_id` 값과 같아야 합니다. 이번 연결 확인에서는 표시 이름 `TayoTayo`를 넣어 `projects/TayoTayo`로 전송하면서 403 `CONSUMER_INVALID`가 발생했습니다. 프로젝트 ID를 `tayotayo-da4d1`로 바꾼 뒤 드라이런 검증이 성공했습니다. Firebase Cloud Messaging API도 해당 프로젝트의 Cloud Messaging 설정에서 활성화되어 있어야 합니다.
+
+### 11-3. 실제 기기 토큰 등록
+
+서비스 계정 키만으로는 휴대폰에 푸시를 보낼 수 없습니다. Firebase에 연결된 Android/iOS 앱이 실행되어 발급받은 **실제 FCM 등록 토큰**도 필요합니다. 앱 담당자가 토큰을 제공하거나, 해당 Firebase 프로젝트에 연결된 테스트 앱/기기를 준비해야 합니다. 임의 문자열은 사용할 수 없습니다.
+
+푸시를 받을 보호자 계정은 아이와 연결되어 있어야 합니다. 아직 연결 전이면 다음 흐름으로 연결합니다.
+
+1. 보호자 이메일로 별도 계정을 가입하고 `clientType`을 `GUARDIAN_APP`으로 로그인합니다. 개발용 인증 코드는 응답의 `debugCode`를 사용합니다.
+2. 기관 관리자 계정에서 `POST /orgs/{orgId}/children/{childId}/guardian-invitations`를 호출합니다. 요청 예: `{"email":"guardian@example.com","relationship":"MOTHER"}`. 응답의 `invitationCode`를 복사합니다.
+3. 보호자 계정으로 로그인하고 `POST /guardian-invitations/accept`를 호출해 `{"code":"초대 코드"}`를 보냅니다. 초대한 이메일과 로그인 계정 이메일이 같아야 합니다.
+
+로그인한 보호자 access token으로 `POST /me/push-devices`에 등록합니다. 앱에서 권한 승인을 받은 기기여야 `osPermission`을 `GRANTED`로 보냅니다.
+
+```json
+{
+  "platform": "ANDROID",
+  "fcmToken": "앱에서 발급받은 실제 FCM 토큰",
+  "appVersion": "1.0.0",
+  "osPermission": "GRANTED"
+}
+```
+
+Swagger에서 먼저 로그인한 뒤 **Authorize**에 로그인 access token을 넣어야 합니다. 응답에 등록된 기기 ID가 오는지 확인합니다.
+
+### 앱 없이 FCM 연결만 검증하기
+
+앱과 FCM 기기 토큰이 아직 없다면 STS 실행 설정에 `FIREBASE_TEST_ENDPOINT_ENABLED=true`를 추가하고 서버를 재시작합니다. 로그인한 상태에서 Swagger의 `POST /dev/fcm/dry-run`을 호출하면 FCM에 실제 발송 없이 요청 형식과 서버 인증을 검증합니다.
+
+성공 응답은 `status: VALIDATED`, `dryRun: true`, `messageId`입니다. 이번 확인에서도 Firebase가 요청을 검증해 `VALIDATED`를 반환했습니다. 이는 서버 인증, 프로젝트 ID, FCM 요청이 Firebase에서 받아들여졌다는 뜻이며 기기 푸시 수신을 확인한 것은 아닙니다.
+
+`401 Unauthorized`가 나오면 서버를 재시작한 뒤 다시 로그인하고 Swagger의 **Authorize**에 새 access token을 입력합니다. access token은 서버 재시작 때 초기화됩니다. `403 Permission denied`와 `CONSUMER_INVALID`가 나오면 `FIREBASE_PROJECT_ID`가 표시 이름이 아닌 프로젝트 ID인지 확인하고, FCM API 활성화 여부도 확인합니다. 개발용 엔드포인트는 기본 비활성화이며, 확인 후 `FIREBASE_TEST_ENDPOINT_ENABLED=false`로 되돌리고 서버를 재시작하세요.
+
+### 11-4. 가상 운행에서 실제 푸시 확인
+
+README의 5~8절대로 가상 기관, 아이, 정류장, 노선, 배정, 차량 페어링, 운행을 준비합니다. 실제 앱 화면 없이도 Swagger의 차량 API로 이벤트를 시뮬레이션할 수 있습니다.
+
+1. `POST /trips/{tripId}/stops/{tripStopId}/arrive` 실행: 보호자 휴대폰에 **셔틀 도착 안내**가 오는지 확인합니다.
+2. 같은 운행의 아이에 대해 `POST /trips/{tripId}/events`를 실행하고 `eventType`을 `CHILD_DROPPED_OFF`로 설정합니다. 휴대폰에 **하차 안내**가 오는지 확인합니다. 이 이벤트는 테스트 데이터의 아이 상태도 `DROPPED_OFF`로 바꿉니다.
+3. 서버 콘솔과 MySQL의 발송 기록을 확인합니다.
+
+```sql
+USE tayotayo_dev;
+
+SELECT id,user_id,child_id,trip_id,notification_type,status,created_at,sent_at
+FROM notifications
+ORDER BY id DESC LIMIT 20;
+
+SELECT nd.notification_id,nd.push_device_id,nd.status,nd.fcm_message_id,nd.error_code,nd.attempted_at
+FROM notification_deliveries nd
+ORDER BY nd.id DESC LIMIT 20;
+```
+
+`notifications.status='SENT'` 및 `notification_deliveries.status='SENT'`는 Firebase가 기기 토큰을 받아들였다는 뜻입니다. 화면에 실제 표시되는지는 기기 알림 권한, 앱의 포그라운드 처리, OS 설정도 영향을 줍니다. `SKIPPED`면 `push_devices`에 권한 허용 상태의 활성 토큰이 없는지 확인하고, `FAILED`면 `error_code`와 서버 로그를 확인합니다.
+
+### 참고: 개발 환경 제한
 
 - 이메일 발송 대신 회원가입 인증 코드가 응답의 `debugCode`에 표시됩니다.
-- 푸시 알림은 DB에 쌓이며 실제 FCM 발송은 아직 연결되지 않았습니다.
+- FCM 발송은 서비스 계정 경로와 실제 앱 토큰을 등록한 경우에만 활성화됩니다.
 - access token은 현재 개발용 메모리 저장소를 사용하므로 서버를 재시작하면 기존 토큰이 무효가 됩니다.
 - 좌석·안전벨트 상태는 서버에서 저장하지 않습니다.

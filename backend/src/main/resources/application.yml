@@ -8,6 +8,12 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 server:
   port: 8080
+app:
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+    project-id: ${FIREBASE_PROJECT_ID:}
+    test-endpoint-enabled: ${FIREBASE_TEST_ENDPOINT_ENABLED:false}
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

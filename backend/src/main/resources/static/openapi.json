@@ -38,9 +38,59 @@
     },
     {
       "name": "공지·운영"
+    },
+    {
+      "name": "개발 확인"
     }
   ],
   "paths": {
+    "/dev/fcm/dry-run": {
+      "post": {
+        "tags": [
+          "개발 확인"
+        ],
+        "summary": "FCM 연결 드라이런 검증 (개발 전용)",
+        "description": "FIREBASE_TEST_ENDPOINT_ENABLED=true일 때만 사용할 수 있습니다. FCM이 메시지를 검증하지만 기기로 실제 전송하지 않습니다.",
+        "operationId": "post_dev_fcm_dry_run",
+        "parameters": [],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "FCM 요청 검증 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "VALIDATED"
+                    },
+                    "dryRun": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "messageId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인 필요"
+          },
+          "500": {
+            "description": "Firebase 설정 또는 요청 검증 오류"
+          }
+        }
+      }
+    },
     "/auth/email-verifications": {
       "post": {
         "tags": [

@@ -1,6 +1,7 @@
 package com.tayotayo.backend.trips;
 
 import com.tayotayo.backend.auth.AccessTokenStore;
+import com.tayotayo.backend.notifications.PushNotificationService;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
@@ -19,8 +20,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController @RequestMapping("/api/v1")
 public class TripController {
-    private final JdbcTemplate jdbc; private final AccessTokenStore tokens;
-    public TripController(JdbcTemplate jdbc,AccessTokenStore tokens){this.jdbc=jdbc;this.tokens=tokens;}
+    private final JdbcTemplate jdbc; private final AccessTokenStore tokens; private final PushNotificationService notifications;
+    public TripController(JdbcTemplate jdbc,AccessTokenStore tokens,PushNotificationService notifications){this.jdbc=jdbc;this.tokens=tokens;this.notifications=notifications;}
 
     @PostMapping("/orgs/{orgId}/trips") @Transactional
     public Map<String,Object> create(@PathVariable("orgId")long org,@RequestHeader(name="Authorization",required=false)String auth,@RequestBody Map<String,Object>b){
@@ -49,7 +50,7 @@ public class TripController {
 
     @PostMapping("/trips/{tripId}/start") public Map<String,Object> start(@PathVariable("tripId")long id,@RequestHeader(name="X-Vehicle-Credential",required=false)String credential){requireDeviceTrip(id,credential);int n=jdbc.update("UPDATE trips SET status='IN_PROGRESS',started_at=CURRENT_TIMESTAMP(3),updated_at=CURRENT_TIMESTAMP(3) WHERE id=? AND status='PREPARING'",id);if(n==0)conflict();return getTrip(id);}
 
-    @PostMapping("/trips/{tripId}/stops/{tripStopId}/arrive") public Map<String,Object> arrive(@PathVariable("tripId")long id,@PathVariable("tripStopId")long stop,@RequestHeader(name="X-Vehicle-Credential",required=false)String credential){requireDeviceTrip(id,credential);int n=jdbc.update("UPDATE trip_stops SET status='ARRIVED',arrived_at=CURRENT_TIMESTAMP(3),updated_at=CURRENT_TIMESTAMP(3) WHERE id=? AND trip_id=? AND status='PENDING'",stop,id);if(n==0)conflict();return getTrip(id);}
+    @PostMapping("/trips/{tripId}/stops/{tripStopId}/arrive") public Map<String,Object> arrive(@PathVariable("tripId")long id,@PathVariable("tripStopId")long stop,@RequestHeader(name="X-Vehicle-Credential",required=false)String credential){requireDeviceTrip(id,credential);int n=jdbc.update("UPDATE trip_stops SET status='ARRIVED',arrived_at=CURRENT_TIMESTAMP(3),updated_at=CURRENT_TIMESTAMP(3) WHERE id=? AND trip_id=? AND status='PENDING'",stop,id);if(n==0)conflict();notifications.notifyStopArrived(id,stop);return getTrip(id);}
 
     @PostMapping("/trips/{tripId}/stops/{tripStopId}/complete") public Map<String,Object> stopComplete(@PathVariable("tripId")long id,@PathVariable("tripStopId")long stop,@RequestHeader(name="X-Vehicle-Credential",required=false)String credential){requireDeviceTrip(id,credential);int n=jdbc.update("UPDATE trip_stops SET status='COMPLETED',completed_at=CURRENT_TIMESTAMP(3),updated_at=CURRENT_TIMESTAMP(3) WHERE id=? AND trip_id=? AND status='ARRIVED'",stop,id);if(n==0)conflict();return getTrip(id);}
 
@@ -69,7 +70,9 @@ public class TripController {
         Object rawChild=body.get("tripChildId"),rawStop=body.get("tripStopId");Long child=rawChild==null?null:id(rawChild,"tripChildId"),stop=rawStop==null?null:id(rawStop,"tripStopId");
         if(child!=null)exists("SELECT COUNT(*) FROM trip_children WHERE trip_id=? AND id=?",id,child);if(stop!=null)exists("SELECT COUNT(*) FROM trip_stops WHERE trip_id=? AND id=?",id,stop);
         jdbc.update("INSERT INTO trip_events(client_event_id,trip_id,trip_child_id,trip_stop_id,event_type,occurred_at,recorded_by_device_id,latitude,longitude,payload) VALUES(?,?,?,?,?,?,?,?,?,JSON_OBJECT())",client,id,child,stop,event,at,device,body.get("latitude"),body.get("longitude"));
+        Long eventId=jdbc.queryForObject("SELECT id FROM trip_events WHERE trip_id=? AND client_event_id=?",Long.class,id,client);
         updateChildFromEvent(id,child,event,body);
+        if(child!=null&&(event.equals("CHILD_DROPPED_OFF")||event.equals("CHILD_RECEIVED_BY_ORG")))notifications.notifyChildDroppedOff(id,child,eventId);
         return Map.of("accepted",true,"clientEventId",client,"eventType",event);
     }
 

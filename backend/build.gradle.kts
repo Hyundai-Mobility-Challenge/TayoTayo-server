@@ -25,5 +25,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
+    implementation("com.google.firebase:firebase-admin:9.11.0")
     runtimeOnly("com.mysql:mysql-connector-j")
 }
