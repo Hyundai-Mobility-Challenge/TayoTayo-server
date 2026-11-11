@@ -41,6 +41,21 @@ SHOW TABLES;
 
 ## 3. STS에서 서버 실행하기
 
+### DB 접속 환경 변수 등록
+
+서버가 MySQL에 접속하려면 실행 설정에 아래 값을 등록해야 합니다.
+
+| 변수 이름 | 입력할 값 |
+| --- | --- |
+| `DB_USERNAME` | MySQL 계정 이름 |
+| `DB_PASSWORD` | 해당 MySQL 계정의 비밀번호 |
+
+STS에서 **Run > Run Configurations... > Spring Boot App > TayoTayoBackendApplication > Environment**로 이동합니다. **Add...**를 눌러 변수 이름과 값을 하나씩 추가한 뒤 **Apply**를 누릅니다. 비밀번호는 README, 코드, Git에 기록하지 마세요.
+
+`DB_URL`은 기본값이 `jdbc:mysql://127.0.0.1:3306/tayotayo_dev?serverTimezone=Asia/Seoul&characterEncoding=UTF-8`이므로 보통 추가할 필요가 없습니다. 다른 주소나 데이터베이스를 사용할 때만 `DB_URL`을 추가합니다.
+
+### 서버 시작
+
 1. STS에서 `backend` 프로젝트를 선택합니다.
 2. 우클릭하여 **Gradle > Refresh Gradle Project**를 실행합니다.
 3. `TayoTayoBackendApplication.java`를 찾아 우클릭하고 **Run As > Spring Boot App**을 선택합니다.
