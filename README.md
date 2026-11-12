@@ -1,15 +1,24 @@
 # TayoTayo 백엔드 API 처음 실행하기
 
-이 문서는 처음 백엔드를 실행하는 사람이 **STS와 Swagger UI만으로 회원가입부터 운행 테스트까지** 따라 할 수 있도록 정리했습니다.
+이 문서는 처음 백엔드를 실행하는 사람이 **실행 파일과 Swagger UI만으로 회원가입부터 운행 테스트까지** 따라 할 수 있도록 정리했습니다. STS 실행 방법도 선택 항목으로 남겨 두었습니다.
 
 ## 1. 준비물
 
 - Java 21
 - MySQL 8이 실행 중이고 `tayotayo_dev` 데이터베이스에 프로젝트 스키마가 만들어져 있어야 합니다.
-- STS에 `backend` 프로젝트를 Gradle 프로젝트로 가져옵니다.
-- 실행 설정에 MySQL 접속 환경 변수 `DB_USERNAME`, `DB_PASSWORD`를 등록합니다. 비밀번호를 코드나 Git에 적지 마세요.
+- 처음 실행할 때 MySQL 접속 정보를 한 번 입력합니다. 입력한 비밀번호는 이 PC의 `backend/.secrets/server.properties`에 저장되며 Git에는 포함되지 않습니다.
 
 기본 DB 주소는 `jdbc:mysql://127.0.0.1:3306/tayotayo_dev`입니다. 필요하면 `DB_URL` 환경 변수로 바꿀 수 있습니다. 서버는 DB 테이블을 자동으로 만들거나 변경하지 않습니다.
+
+### 다른 컴퓨터의 MySQL을 사용할 때
+
+`127.0.0.1`은 백엔드와 같은 PC를 뜻합니다. MySQL이 다른 PC에서 실행 중이면 `backend/.secrets/server.properties`의 `DB_HOST`를 MySQL PC의 LAN IPv4 주소로 바꿉니다.
+
+```text
+jdbc:mysql://192.168.0.40:3306/tayotayo_dev?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+```
+
+MySQL PC에서도 원격 연결을 허용하고, Windows 방화벽의 `3306` 포트와 MySQL 계정의 접속 권한을 설정해야 합니다. MySQL과 백엔드가 같은 PC라면 기본 주소를 유지하세요.
 
 ## 2. MySQL 데이터베이스와 테이블 준비
 
@@ -39,7 +48,23 @@ USE tayotayo_dev;
 SHOW TABLES;
 ```
 
-## 3. STS에서 서버 실행하기
+## 3. 서버 실행하기 (STS 없이)
+
+Windows에서는 `backend/start-server.bat`을 더블클릭합니다. 첫 실행에서 MySQL 주소·포트·데이터베이스·계정·비밀번호를 물어봅니다. MySQL이 백엔드와 같은 PC에 있으면 기본값을 그대로 사용하고, 비밀번호만 입력하면 됩니다. 접속 정보는 로컬 설정 파일에 저장되어 이후에는 실행 파일만 다시 열면 됩니다.
+
+실행 파일은 Gradle로 실행 가능한 Spring Boot JAR를 만들고 서버를 시작합니다. 최초 한 번은 의존성을 내려받고 컴파일하므로 시간이 걸릴 수 있으며, 이후 실행은 변경 사항이 있을 때만 다시 빌드합니다. 종료하려면 열린 창에서 **Ctrl+C**를 누릅니다.
+
+실행 후 창에 표시되는 주소를 사용합니다. 내 PC에서는 `http://localhost:8080/health`, API 문서는 `http://localhost:8080/swagger-ui.html`입니다. 같은 Wi-Fi의 다른 PC나 휴대폰은 창에 표시되는 `http://<백엔드 PC의 LAN IPv4>:8080` 주소를 사용합니다. IP가 바뀌면 앱의 서버 주소만 새 값으로 바꿔야 합니다. 자주 바뀌지 않게 하려면 공유기에서 백엔드 PC의 DHCP 예약을 설정할 수 있습니다.
+
+### DB 주소나 계정을 나중에 바꿀 때
+
+`backend/.secrets/server.properties`를 수정한 뒤 서버를 다시 실행합니다. MySQL이 다른 PC에 있으면 `DB_HOST`를 MySQL PC의 주소로 변경합니다. 이 경우 MySQL 쪽 원격 연결, 계정 권한, 방화벽 `3306` 허용도 필요합니다. 비밀번호가 변경되면 `DB_PASSWORD`도 수정합니다.
+
+FCM 푸시를 사용할 때는 같은 파일에 `FIREBASE_ENABLED=true`, `FIREBASE_CREDENTIALS_PATH=<서비스 계정 JSON의 전체 경로>`, `FIREBASE_PROJECT_ID=<Firebase 프로젝트 ID>`를 입력합니다. 테스트 API를 쓸 때만 `FIREBASE_TEST_ENDPOINT_ENABLED=true`로 설정합니다. 서비스 계정 JSON 파일과 설정 파일은 저장소에 올리지 마세요.
+
+STS를 계속 쓰고 싶다면 아래 방법도 사용할 수 있습니다.
+
+## STS에서 서버 실행하기 (선택)
 
 ### DB 접속 환경 변수 등록
 
@@ -66,6 +91,21 @@ STS에서 **Run > Run Configurations... > Spring Boot App > TayoTayoBackendAppli
    - API 문서: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 
 DB 확인 응답의 `database`가 `tayotayo_dev`인지 확인합니다. 서버를 끌 때는 STS 콘솔의 빨간 정지 버튼을 누릅니다.
+
+## 다른 PC·에뮬레이터·휴대폰에서 API 접속
+
+백엔드 기본 포트는 `8080`입니다. 서버 PC에서 PowerShell의 `ipconfig`를 실행해 Wi-Fi 또는 Ethernet 어댑터의 `IPv4 주소`를 확인합니다. 예를 들어 `192.168.0.30`이면 같은 네트워크의 다른 PC 브라우저에서 `http://192.168.0.30:8080/health`를 열어 연결을 확인합니다.
+
+| 접속 기기 | 백엔드 주소 | 조건 |
+| --- | --- | --- |
+| 백엔드 PC 자체 | `http://127.0.0.1:8080` | 기본값 |
+| Android 에뮬레이터 | `http://10.0.2.2:8080` | 에뮬레이터와 백엔드가 같은 PC에서 실행 |
+| 실제 휴대폰 | `http://<백엔드 PC의 LAN IPv4>:8080` | 휴대폰과 PC가 같은 Wi-Fi/LAN |
+| 다른 PC의 에뮬레이터 | `http://<백엔드 PC의 LAN IPv4>:8080` | `10.0.2.2`는 에뮬레이터가 실행되는 PC를 가리킴 |
+
+휴대폰과 다른 PC에서는 `127.0.0.1`이 각자 자기 기기를 가리키므로 서버 주소로 사용할 수 없습니다. 앱의 서버 주소에는 호스트와 포트만 입력하고 `/api/v1`은 붙이지 않습니다. Windows 방화벽에서 `8080` 포트를 개인 네트워크에 허용해야 할 수 있습니다. 개발 서버를 공용 인터넷에 노출하지 마세요.
+
+LAN IP가 바뀌면 휴대폰·에뮬레이터의 서버 주소와, 관리자 웹 서버가 다른 PC에 있는 경우 `BACKEND_URL`을 새 주소로 바꿔야 합니다. 주소 변경을 줄이려면 공유기에서 백엔드 PC의 DHCP 예약을 설정할 수 있습니다.
 
 ## 4. Swagger UI에서 요청 보내는 법
 
