@@ -168,7 +168,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EmailVerification"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EmailVerification"
+                  }
+                ],
+                "example": {
+                  "email": "guardian@example.com",
+                  "purpose": "SIGN_UP"
+                }
+              },
+              "example": {
+                "email": "guardian@example.com",
+                "purpose": "SIGN_UP"
               }
             }
           }
@@ -252,7 +264,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EmailCode"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EmailCode"
+                  }
+                ],
+                "example": {
+                  "email": "guardian@example.com",
+                  "purpose": "SIGN_UP",
+                  "code": "123456"
+                }
+              },
+              "example": {
+                "email": "guardian@example.com",
+                "purpose": "SIGN_UP",
+                "code": "123456"
               }
             }
           }
@@ -336,7 +362,23 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Signup"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Signup"
+                  }
+                ],
+                "example": {
+                  "email": "guardian@example.com",
+                  "password": "testpass123",
+                  "name": "김하늘 보호자",
+                  "verificationCode": "123456"
+                }
+              },
+              "example": {
+                "email": "guardian@example.com",
+                "password": "testpass123",
+                "name": "김하늘 보호자",
+                "verificationCode": "123456"
               }
             }
           }
@@ -420,7 +462,23 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Login"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Login"
+                  }
+                ],
+                "example": {
+                  "email": "guardian@example.com",
+                  "password": "testpass123",
+                  "clientType": "GUARDIAN_APP",
+                  "deviceLabel": "Android 앱"
+                }
+              },
+              "example": {
+                "email": "guardian@example.com",
+                "password": "testpass123",
+                "clientType": "GUARDIAN_APP",
+                "deviceLabel": "Android 앱"
               }
             }
           }
@@ -504,7 +562,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string",
+                    "example": "로그인 응답의 refreshToken"
+                  }
+                },
+                "example": {
+                  "refreshToken": "로그인 응답의 refreshToken"
+                }
+              },
+              "example": {
+                "refreshToken": "로그인 응답의 refreshToken"
               }
             }
           }
@@ -583,6 +653,29 @@
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "description": "refreshToken을 보내면 해당 세션을 폐기합니다. 생략해도 요청할 수 있습니다.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string",
+                    "description": "로그인 응답의 refreshToken"
+                  }
+                },
+                "example": {
+                  "refreshToken": "로그인 응답의 refreshToken"
+                }
+              },
+              "example": {
+                "refreshToken": "로그인 응답의 refreshToken"
               }
             }
           }
@@ -736,7 +829,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "김하늘 보호자"
+                  }
+                },
+                "example": {
+                  "name": "김하늘 보호자"
+                }
+              },
+              "example": {
+                "name": "김하늘 보호자"
               }
             }
           }
@@ -895,7 +1000,41 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "consents": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "policyDocumentId": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "agreed": {
+                          "type": "boolean",
+                          "example": true
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "consents": [
+                    {
+                      "policyDocumentId": 1,
+                      "agreed": true
+                    }
+                  ]
+                }
+              },
+              "example": {
+                "consents": [
+                  {
+                    "policyDocumentId": 1,
+                    "agreed": true
+                  }
+                ]
               }
             }
           }
@@ -983,7 +1122,29 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationCreate"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OrganizationCreate"
+                  }
+                ],
+                "example": {
+                  "name": "햇살 유치원",
+                  "orgType": "KINDERGARTEN",
+                  "phone": "02-1234-5678",
+                  "address": "서울시 강남구",
+                  "latitude": 37.498,
+                  "longitude": 127.027,
+                  "timezone": "Asia/Seoul"
+                }
+              },
+              "example": {
+                "name": "햇살 유치원",
+                "orgType": "KINDERGARTEN",
+                "phone": "02-1234-5678",
+                "address": "서울시 강남구",
+                "latitude": 37.498,
+                "longitude": 127.027,
+                "timezone": "Asia/Seoul"
               }
             }
           }
@@ -1218,7 +1379,49 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "햇살 유치원"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "02-1234-5678"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "서울시 강남구"
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "example": 37.498
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "example": 127.027
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "example": "Asia/Seoul"
+                  }
+                },
+                "example": {
+                  "name": "햇살 유치원",
+                  "phone": "02-1234-5678",
+                  "address": "서울시 강남구",
+                  "latitude": 37.498,
+                  "longitude": 127.027,
+                  "timezone": "Asia/Seoul"
+                }
+              },
+              "example": {
+                "name": "햇살 유치원",
+                "phone": "02-1234-5678",
+                "address": "서울시 강남구",
+                "latitude": 37.498,
+                "longitude": 127.027,
+                "timezone": "Asia/Seoul"
               }
             }
           }
@@ -1391,7 +1594,31 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "staffRole": {
+                    "type": "string",
+                    "example": "TEACHER"
+                  },
+                  "webRole": {
+                    "type": "string",
+                    "example": "MANAGER"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "ACTIVE"
+                  }
+                },
+                "example": {
+                  "staffRole": "TEACHER",
+                  "webRole": "MANAGER",
+                  "status": "ACTIVE"
+                }
+              },
+              "example": {
+                "staffRole": "TEACHER",
+                "webRole": "MANAGER",
+                "status": "ACTIVE"
               }
             }
           }
@@ -1483,7 +1710,31 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "teacher@example.com"
+                  },
+                  "staffRole": {
+                    "type": "string",
+                    "example": "TEACHER"
+                  },
+                  "webRole": {
+                    "type": "string",
+                    "example": "MANAGER"
+                  }
+                },
+                "example": {
+                  "email": "teacher@example.com",
+                  "staffRole": "TEACHER",
+                  "webRole": "MANAGER"
+                }
+              },
+              "example": {
+                "email": "teacher@example.com",
+                "staffRole": "TEACHER",
+                "webRole": "MANAGER"
               }
             }
           }
@@ -1571,7 +1822,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "example": "기관에서 받은 직원 초대 코드"
+                  }
+                },
+                "example": {
+                  "code": "기관에서 받은 직원 초대 코드"
+                }
+              },
+              "example": {
+                "code": "기관에서 받은 직원 초대 코드"
               }
             }
           }
@@ -1739,7 +2002,23 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VehicleCreate"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/VehicleCreate"
+                  }
+                ],
+                "example": {
+                  "name": "햇살 1호차",
+                  "plateNumber": "12가3456",
+                  "model": "셔틀버스",
+                  "seatCapacity": 20
+                }
+              },
+              "example": {
+                "name": "햇살 1호차",
+                "plateNumber": "12가3456",
+                "model": "셔틀버스",
+                "seatCapacity": 20
               }
             }
           }
@@ -1907,7 +2186,43 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "햇살 1호차"
+                  },
+                  "plateNumber": {
+                    "type": "string",
+                    "example": "12가3456"
+                  },
+                  "model": {
+                    "type": "string",
+                    "example": "셔틀버스"
+                  },
+                  "seatCapacity": {
+                    "type": "integer",
+                    "example": 20
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "ACTIVE"
+                  }
+                },
+                "example": {
+                  "name": "햇살 1호차",
+                  "plateNumber": "12가3456",
+                  "model": "셔틀버스",
+                  "seatCapacity": 20,
+                  "status": "ACTIVE"
+                }
+              },
+              "example": {
+                "name": "햇살 1호차",
+                "plateNumber": "12가3456",
+                "model": "셔틀버스",
+                "seatCapacity": 20,
+                "status": "ACTIVE"
               }
             }
           }
@@ -2002,7 +2317,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "expiresIn": {
+                    "type": "integer",
+                    "example": 600
+                  }
+                },
+                "example": {
+                  "expiresIn": 600
+                }
+              },
+              "example": {
+                "expiresIn": 600
               }
             }
           }
@@ -2086,7 +2413,23 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Pair"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Pair"
+                  }
+                ],
+                "example": {
+                  "code": "발급받은 6자리 코드",
+                  "installId": "a4d8c95e-35c2-4d4f-9bd9-c2a16ef03210",
+                  "appVersion": "1.0.0",
+                  "pleosSdkVersion": "3.0.5"
+                }
+              },
+              "example": {
+                "code": "발급받은 6자리 코드",
+                "installId": "a4d8c95e-35c2-4d4f-9bd9-c2a16ef03210",
+                "appVersion": "1.0.0",
+                "pleosSdkVersion": "3.0.5"
               }
             }
           }
@@ -2252,7 +2595,37 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "platform": {
+                    "type": "string",
+                    "example": "ANDROID"
+                  },
+                  "fcmToken": {
+                    "type": "string",
+                    "example": "FCM 등록 토큰"
+                  },
+                  "appVersion": {
+                    "type": "string",
+                    "example": "1.0.0"
+                  },
+                  "osPermission": {
+                    "type": "string",
+                    "example": "GRANTED"
+                  }
+                },
+                "example": {
+                  "platform": "ANDROID",
+                  "fcmToken": "FCM 등록 토큰",
+                  "appVersion": "1.0.0",
+                  "osPermission": "GRANTED"
+                }
+              },
+              "example": {
+                "platform": "ANDROID",
+                "fcmToken": "FCM 등록 토큰",
+                "appVersion": "1.0.0",
+                "osPermission": "GRANTED"
               }
             }
           }
@@ -2502,7 +2875,25 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "김하늘"
+                  },
+                  "className": {
+                    "type": "string",
+                    "example": "햇살반"
+                  }
+                },
+                "example": {
+                  "name": "김하늘",
+                  "className": "햇살반"
+                }
+              },
+              "example": {
+                "name": "김하늘",
+                "className": "햇살반"
               }
             }
           }
@@ -2670,7 +3061,31 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "김하늘"
+                  },
+                  "className": {
+                    "type": "string",
+                    "example": "햇살반"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "ACTIVE"
+                  }
+                },
+                "example": {
+                  "name": "김하늘",
+                  "className": "햇살반",
+                  "status": "ACTIVE"
+                }
+              },
+              "example": {
+                "name": "김하늘",
+                "className": "햇살반",
+                "status": "ACTIVE"
               }
             }
           }
@@ -2838,7 +3253,49 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "강남역 1번 출구"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "서울시 강남구 강남대로 396"
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "example": 37.498
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "example": 127.028
+                  },
+                  "arrivalRadiusM": {
+                    "type": "integer",
+                    "example": 50
+                  },
+                  "memo": {
+                    "type": "string",
+                    "example": "출구 앞 안전 구역"
+                  }
+                },
+                "example": {
+                  "name": "강남역 1번 출구",
+                  "address": "서울시 강남구 강남대로 396",
+                  "latitude": 37.498,
+                  "longitude": 127.028,
+                  "arrivalRadiusM": 50,
+                  "memo": "출구 앞 안전 구역"
+                }
+              },
+              "example": {
+                "name": "강남역 1번 출구",
+                "address": "서울시 강남구 강남대로 396",
+                "latitude": 37.498,
+                "longitude": 127.028,
+                "arrivalRadiusM": 50,
+                "memo": "출구 앞 안전 구역"
               }
             }
           }
@@ -2933,10 +3390,70 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "강남역 1번 출구"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "서울시 강남구 강남대로 396"
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "example": 37.498
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "example": 127.028
+                  },
+                  "arrivalRadiusM": {
+                    "type": "integer",
+                    "example": 50
+                  },
+                  "memo": {
+                    "type": "string",
+                    "example": "출구 앞 안전 구역"
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                },
+                "example": {
+                  "name": "강남역 1번 출구",
+                  "address": "서울시 강남구 강남대로 396",
+                  "latitude": 37.498,
+                  "longitude": 127.028,
+                  "memo": "출구 앞 안전 구역",
+                  "isActive": true
+                }
+              },
+              "example": {
+                "name": "강남역 1번 출구",
+                "address": "서울시 강남구 강남대로 396",
+                "latitude": 37.498,
+                "longitude": 127.028,
+                "memo": "출구 앞 안전 구역",
+                "isActive": true
               }
             }
           }
+        }
+      },
+      "delete": {
+        "tags": ["아이·노선"],
+        "summary": "정류장 삭제",
+        "description": "정류장을 삭제 처리하고 미래 노선에서 제외합니다. 이미 생성된 운행 기록은 보존됩니다.",
+        "operationId": "delete__orgs__orgId__stops__stopId_",
+        "parameters": [{ "$ref": "#/components/parameters/orgId" }, { "$ref": "#/components/parameters/stopId" }],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "삭제 처리 완료", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Resource" }, "example": { "id": 1, "deleted": true } } } },
+          "401": { "description": "인증 실패", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "접근 권한 없음", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "대상 없음", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -3101,7 +3618,37 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "오전 등원 노선"
+                  },
+                  "vehicleId": {
+                    "type": "string",
+                    "example": "1"
+                  },
+                  "direction": {
+                    "type": "string",
+                    "example": "PICK_UP"
+                  },
+                  "departureTime": {
+                    "type": "string",
+                    "example": "08:30:00"
+                  }
+                },
+                "example": {
+                  "name": "오전 등원 노선",
+                  "vehicleId": "1",
+                  "direction": "PICK_UP",
+                  "departureTime": "08:30:00"
+                }
+              },
+              "example": {
+                "name": "오전 등원 노선",
+                "vehicleId": "1",
+                "direction": "PICK_UP",
+                "departureTime": "08:30:00"
               }
             }
           }
@@ -3136,6 +3683,18 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Resource"
+                },
+                "example": {
+                  "id": 1,
+                  "orgId": 1,
+                  "vehicleId": 1,
+                  "name": "오전 등원 노선",
+                  "direction": "DROP_OFF",
+                  "departureTime": "08:30:00",
+                  "isActive": true,
+                  "stops": [
+                    { "stopId": 1, "name": "강남역 1번 출구", "address": "서울시 강남구", "sequence": 1 }
+                  ]
                 }
               }
             }
@@ -3269,10 +3828,61 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "오전 등원 노선"
+                  },
+                  "vehicleId": {
+                    "type": "string",
+                    "example": "1"
+                  },
+                  "direction": {
+                    "type": "string",
+                    "example": "PICK_UP"
+                  },
+                  "departureTime": {
+                    "type": "string",
+                    "example": "08:30:00"
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                },
+                "example": {
+                  "name": "오전 등원 노선",
+                  "vehicleId": "1",
+                  "direction": "PICK_UP",
+                  "departureTime": "08:30:00",
+                  "isActive": true
+                }
+              },
+              "example": {
+                "name": "오전 등원 노선",
+                "vehicleId": "1",
+                "direction": "PICK_UP",
+                "departureTime": "08:30:00",
+                "isActive": true
               }
             }
           }
+        }
+      },
+      "delete": {
+        "tags": ["아이·노선"],
+        "summary": "노선 삭제",
+        "description": "노선을 삭제 처리합니다. 기존 운행 기록은 보존되며 진행 중인 운행이 있으면 삭제할 수 없습니다.",
+        "operationId": "delete__orgs__orgId__routes__routeId_",
+        "parameters": [{ "$ref": "#/components/parameters/orgId" }, { "$ref": "#/components/parameters/routeId" }],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "삭제 처리 완료", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Resource" }, "example": { "id": 1, "deleted": true } } } },
+          "401": { "description": "인증 실패", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "접근 권한 없음", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "대상 없음", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "진행 중인 운행과 충돌", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -3364,7 +3974,49 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "stops": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "stopId": {
+                          "type": "string",
+                          "example": "1"
+                        },
+                        "sequence": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "stops": [
+                    {
+                      "stopId": "1",
+                      "sequence": 1
+                    },
+                    {
+                      "stopId": "2",
+                      "sequence": 2
+                    }
+                  ]
+                }
+              },
+              "example": {
+                "stops": [
+                  {
+                    "stopId": "1",
+                    "sequence": 1
+                  },
+                  {
+                    "stopId": "2",
+                    "sequence": 2
+                  }
+                ]
               }
             }
           }
@@ -3538,7 +4190,48 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "routeId": {
+                    "type": "string",
+                    "example": "1"
+                  },
+                  "vehicleId": {
+                    "type": "string",
+                    "example": "1"
+                  },
+                  "stopId": {
+                    "type": "string",
+                    "example": "1"
+                  },
+                  "weekdays": {
+                    "type": "integer",
+                    "example": 31
+                  },
+                  "effectiveFrom": {
+                    "type": "string",
+                    "example": "2026-11-12"
+                  },
+                  "effectiveTo": {
+                    "nullable": true
+                  }
+                },
+                "example": {
+                  "routeId": "1",
+                  "vehicleId": "1",
+                  "stopId": "1",
+                  "weekdays": 31,
+                  "effectiveFrom": "2026-11-12",
+                  "effectiveTo": null
+                }
+              },
+              "example": {
+                "routeId": "1",
+                "vehicleId": "1",
+                "stopId": "1",
+                "weekdays": 31,
+                "effectiveFrom": "2026-11-12",
+                "effectiveTo": null
               }
             }
           }
@@ -3633,7 +4326,25 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "guardian@example.com"
+                  },
+                  "relationship": {
+                    "type": "string",
+                    "example": "MOTHER"
+                  }
+                },
+                "example": {
+                  "email": "guardian@example.com",
+                  "relationship": "MOTHER"
+                }
+              },
+              "example": {
+                "email": "guardian@example.com",
+                "relationship": "MOTHER"
               }
             }
           }
@@ -3721,7 +4432,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "example": "기관에서 받은 보호자 초대 코드"
+                  }
+                },
+                "example": {
+                  "code": "기관에서 받은 보호자 초대 코드"
+                }
+              },
+              "example": {
+                "code": "기관에서 받은 보호자 초대 코드"
               }
             }
           }
@@ -4052,7 +4775,25 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Attendance"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Attendance"
+                  }
+                ],
+                "example": {
+                  "serviceDate": "2026-11-12",
+                  "direction": "DROP_OFF",
+                  "requestType": "ABSENT",
+                  "reasonCode": "SICK",
+                  "reasonText": "감기 진료 예정"
+                }
+              },
+              "example": {
+                "serviceDate": "2026-11-12",
+                "direction": "DROP_OFF",
+                "requestType": "ABSENT",
+                "reasonCode": "SICK",
+                "reasonText": "감기 진료 예정"
               }
             }
           }
@@ -4225,7 +4966,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Review"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Review"
+                  }
+                ],
+                "example": {
+                  "decision": "APPROVED",
+                  "reviewNote": "확인했습니다."
+                }
+              },
+              "example": {
+                "decision": "APPROVED",
+                "reviewNote": "확인했습니다."
               }
             }
           }
@@ -4475,10 +5228,59 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "홍길동"
+                  },
+                  "relationship": {
+                    "type": "string",
+                    "example": "할머니"
+                  },
+                  "validFrom": {
+                    "type": "string",
+                    "example": "2026-11-12"
+                  },
+                  "validTo": {
+                    "type": "string",
+                    "example": "2026-12-31"
+                  }
+                },
+                "example": {
+                  "name": "홍길동",
+                  "relationship": "할머니",
+                  "validFrom": "2026-11-12",
+                  "validTo": "2026-12-31"
+                }
+              },
+              "example": {
+                "name": "홍길동",
+                "relationship": "할머니",
+                "validFrom": "2026-11-12",
+                "validTo": "2026-12-31"
               }
             }
           }
+        }
+      }
+    },
+    "/orgs/{orgId}/authorized-pickup-persons": {
+      "get": {
+        "tags": ["보호자 요청"],
+        "summary": "기관 대리 픽업 신청 목록",
+        "operationId": "get__orgs__orgId__authorized_pickup_persons",
+        "description": "기관 직원이 보호자가 등록한 대리 픽업 인원과 심사 상태를 조회합니다.",
+        "parameters": [
+          { "$ref": "#/components/parameters/orgId" },
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/cursor" }
+        ],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "성공", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Page" } } } },
+          "401": { "description": "인증 실패", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "기관 직원이 아님", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -4570,7 +5372,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Review"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Review"
+                  }
+                ],
+                "example": {
+                  "decision": "APPROVED",
+                  "reviewNote": "신청 내용을 확인했습니다."
+                }
+              },
+              "example": {
+                "decision": "APPROVED",
+                "reviewNote": "신청 내용을 확인했습니다."
               }
             }
           }
@@ -4656,6 +5470,21 @@
       }
     },
     "/orgs/{orgId}/trips": {
+      "get": {
+        "tags": ["운행"],
+        "summary": "기관 운행 목록",
+        "operationId": "get__orgs__orgId__trips",
+        "parameters": [
+          { "$ref": "#/components/parameters/orgId" },
+          { "name": "serviceDate", "in": "query", "required": false, "schema": { "type": "string", "format": "date" }, "example": "2026-11-12" },
+          { "name": "direction", "in": "query", "required": false, "schema": { "type": "string", "enum": ["PICK_UP", "DROP_OFF"] } }
+        ],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "성공", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Page" }, "example": { "items": [{ "id": 1, "vehicleId": 1, "vehicleName": "햇살 1호차", "routeId": 1, "routeName": "오전 등원", "direction": "PICK_UP", "serviceDate": "2026-11-12", "status": "PREPARING", "childCount": 3 }], "nextCursor": null } } } },
+          "401": { "description": "인증 실패", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
       "post": {
         "tags": [
           "운행"
@@ -4740,7 +5569,29 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TripCreate"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TripCreate"
+                  }
+                ],
+                "example": {
+                  "clientTripId": "b6d5a28f-627f-4ef5-a2e3-2a0637f04c21",
+                  "vehicleId": "1",
+                  "routeId": "1",
+                  "serviceDate": "2026-11-12",
+                  "direction": "DROP_OFF",
+                  "driverStaffId": "1",
+                  "attendantStaffId": "2"
+                }
+              },
+              "example": {
+                "clientTripId": "b6d5a28f-627f-4ef5-a2e3-2a0637f04c21",
+                "vehicleId": "1",
+                "routeId": "1",
+                "serviceDate": "2026-11-12",
+                "direction": "DROP_OFF",
+                "driverStaffId": "1",
+                "attendantStaffId": "2"
               }
             }
           }
@@ -4986,7 +5837,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DriverCheck"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/DriverCheck"
+                  }
+                ],
+                "example": {
+                  "driverConfirmed": true
+                }
+              },
+              "example": {
+                "driverConfirmed": true
               }
             }
           }
@@ -5497,7 +6358,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "checked": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                },
+                "example": {
+                  "checked": true
+                }
+              },
+              "example": {
+                "checked": true
               }
             }
           }
@@ -5671,7 +6544,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "example": "차량 점검으로 운행 취소"
+                  }
+                },
+                "example": {
+                  "reason": "차량 점검으로 운행 취소"
+                }
+              },
+              "example": {
+                "reason": "차량 점검으로 운행 취소"
               }
             }
           }
@@ -5763,7 +6648,34 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "stopIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "example": 1
+                    }
+                  },
+                  "changeReason": {
+                    "type": "string",
+                    "example": "MANUAL_REORDER"
+                  }
+                },
+                "example": {
+                  "stopIds": [
+                    1,
+                    2
+                  ],
+                  "changeReason": "MANUAL_REORDER"
+                }
+              },
+              "example": {
+                "stopIds": [
+                  1,
+                  2
+                ],
+                "changeReason": "MANUAL_REORDER"
               }
             }
           }
@@ -5855,7 +6767,27 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Event"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Event"
+                  }
+                ],
+                "example": {
+                  "clientEventId": "c5a0977d-5528-47e2-a3b1-975da8e0cb4a",
+                  "eventType": "CHILD_BOARDED",
+                  "occurredAt": "2026-11-12T08:35:00+09:00",
+                  "tripChildId": "1",
+                  "tripStopId": "1",
+                  "payload": {}
+                }
+              },
+              "example": {
+                "clientEventId": "c5a0977d-5528-47e2-a3b1-975da8e0cb4a",
+                "eventType": "CHILD_BOARDED",
+                "occurredAt": "2026-11-12T08:35:00+09:00",
+                "tripChildId": "1",
+                "tripStopId": "1",
+                "payload": {}
               }
             }
           }
@@ -5947,7 +6879,59 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "clientEventId": {
+                          "type": "string",
+                          "example": "c5a0977d-5528-47e2-a3b1-975da8e0cb4a"
+                        },
+                        "eventType": {
+                          "type": "string",
+                          "example": "CHILD_BOARDED"
+                        },
+                        "occurredAt": {
+                          "type": "string",
+                          "example": "2026-11-12T08:35:00+09:00"
+                        },
+                        "tripChildId": {
+                          "type": "string",
+                          "example": "1"
+                        },
+                        "tripStopId": {
+                          "type": "string",
+                          "example": "1"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "events": [
+                    {
+                      "clientEventId": "c5a0977d-5528-47e2-a3b1-975da8e0cb4a",
+                      "eventType": "CHILD_BOARDED",
+                      "occurredAt": "2026-11-12T08:35:00+09:00",
+                      "tripChildId": "1",
+                      "tripStopId": "1"
+                    }
+                  ]
+                }
+              },
+              "example": {
+                "events": [
+                  {
+                    "clientEventId": "c5a0977d-5528-47e2-a3b1-975da8e0cb4a",
+                    "eventType": "CHILD_BOARDED",
+                    "occurredAt": "2026-11-12T08:35:00+09:00",
+                    "tripChildId": "1",
+                    "tripStopId": "1"
+                  }
+                ]
               }
             }
           }
@@ -6039,7 +7023,39 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LocationBatch"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/LocationBatch"
+                  }
+                ],
+                "example": {
+                  "samples": [
+                    {
+                      "recordedAt": "2026-11-12T08:35:00+09:00",
+                      "latitude": 37.498,
+                      "longitude": 127.028,
+                      "speedKph": 25.5,
+                      "headingDeg": 90,
+                      "accuracyM": 8,
+                      "gear": "D",
+                      "source": "PLEOS"
+                    }
+                  ]
+                }
+              },
+              "example": {
+                "samples": [
+                  {
+                    "recordedAt": "2026-11-12T08:35:00+09:00",
+                    "latitude": 37.498,
+                    "longitude": 127.028,
+                    "speedKph": 25.5,
+                    "headingDeg": 90,
+                    "accuracyM": 8,
+                    "gear": "D",
+                    "source": "PLEOS"
+                  }
+                ]
               }
             }
           }
@@ -6131,7 +7147,47 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Eta"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Eta"
+                  }
+                ],
+                "example": {
+                  "routeRevisionNo": 1,
+                  "navRouteKey": "route-20261112-001",
+                  "sourceTime": "2026-11-12T08:35:00+09:00",
+                  "validationStatus": "VALID",
+                  "validationNote": "정류장 순서 일치",
+                  "entries": [
+                    {
+                      "bundleIndex": 0,
+                      "pointType": "DESTINATION",
+                      "tripStopId": "1",
+                      "latitude": 37.498,
+                      "longitude": 127.028,
+                      "remainingSec": 420,
+                      "remainingM": 1800
+                    }
+                  ]
+                }
+              },
+              "example": {
+                "routeRevisionNo": 1,
+                "navRouteKey": "route-20261112-001",
+                "sourceTime": "2026-11-12T08:35:00+09:00",
+                "validationStatus": "VALID",
+                "validationNote": "정류장 순서 일치",
+                "entries": [
+                  {
+                    "bundleIndex": 0,
+                    "pointType": "DESTINATION",
+                    "tripStopId": "1",
+                    "latitude": 37.498,
+                    "longitude": 127.028,
+                    "remainingSec": 420,
+                    "remainingM": 1800
+                  }
+                ]
               }
             }
           }
@@ -6614,7 +7670,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "expiresIn": {
+                    "type": "integer",
+                    "example": 3600
+                  }
+                },
+                "example": {
+                  "expiresIn": 3600
+                }
+              },
+              "example": {
+                "expiresIn": 3600
               }
             }
           }
@@ -6932,7 +8000,37 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "audience": {
+                    "type": "string",
+                    "example": "ALL"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "NOTICE"
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "운행 안내"
+                  },
+                  "body": {
+                    "type": "string",
+                    "example": "오늘 운행은 예정된 시간에 진행합니다."
+                  }
+                },
+                "example": {
+                  "audience": "ALL",
+                  "category": "NOTICE",
+                  "title": "운행 안내",
+                  "body": "오늘 운행은 예정된 시간에 진행합니다."
+                }
+              },
+              "example": {
+                "audience": "ALL",
+                "category": "NOTICE",
+                "title": "운행 안내",
+                "body": "오늘 운행은 예정된 시간에 진행합니다."
               }
             }
           }
@@ -7180,7 +8278,31 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Input"
+                "type": "object",
+                "properties": {
+                  "contacted": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "example": "PICKED_UP_AT_ORG"
+                  },
+                  "note": {
+                    "type": "string",
+                    "example": "보호자와 통화 후 기관에서 인계했습니다."
+                  }
+                },
+                "example": {
+                  "contacted": true,
+                  "resolution": "PICKED_UP_AT_ORG",
+                  "note": "보호자와 통화 후 기관에서 인계했습니다."
+                }
+              },
+              "example": {
+                "contacted": true,
+                "resolution": "PICKED_UP_AT_ORG",
+                "note": "보호자와 통화 후 기관에서 인계했습니다."
               }
             }
           }
@@ -7275,7 +8397,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GuardianCallOpen"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GuardianCallOpen"
+                  }
+                ],
+                "example": {
+                  "callType": "CHILD_NOT_AT_STOP"
+                }
+              },
+              "example": {
+                "callType": "CHILD_NOT_AT_STOP"
               }
             }
           }
@@ -7367,7 +8499,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GuardianCallResponse"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GuardianCallResponse"
+                  }
+                ],
+                "example": {
+                  "response": "ON_THE_WAY"
+                }
+              },
+              "example": {
+                "response": "ON_THE_WAY"
               }
             }
           }
@@ -7469,6 +8611,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "수정 완료",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resource"
+                }
+              }
+            }
+          },
           "400": {
             "description": "요청 값 오류",
             "content": {
@@ -7518,16 +8670,6 @@
                 }
               }
             }
-          },
-          "200": {
-            "description": "수정 완료",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Resource"
-                }
-              }
-            }
           }
         },
         "requestBody": {
@@ -7535,7 +8677,23 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DailyPickup"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/DailyPickup"
+                  }
+                ],
+                "example": {
+                  "serviceDate": "2026-11-12",
+                  "direction": "DROP_OFF",
+                  "personType": "GUARDIAN",
+                  "pickupGuardianUserId": "1"
+                }
+              },
+              "example": {
+                "serviceDate": "2026-11-12",
+                "direction": "DROP_OFF",
+                "personType": "GUARDIAN",
+                "pickupGuardianUserId": "1"
               }
             }
           }

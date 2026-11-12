@@ -2,6 +2,7 @@ package com.tayotayo.backend.pickups;
 
 import com.tayotayo.backend.auth.AccessTokenStore;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,13 @@ public class PickupController {
 
     @PostMapping("/guardian/children/{childId}/authorized-pickup-persons")
     public Map<String,Object> addPerson(@PathVariable("childId")long child,@RequestHeader(name="Authorization",required=false)String auth,@RequestBody Map<String,Object>b){long user=tokens.requireUser(auth);Map<String,Object> c=guardian(child,user);String name=text(b.get("name"),"name"),relation=text(b.get("relationship"),"relationship");if(name.length()>50||relation.length()>30)bad("이름 또는 관계가 너무 깁니다.");Object from=dateOrNull(b.get("validFrom")),to=dateOrNull(b.get("validTo"));jdbc.update("INSERT INTO authorized_pickup_persons(org_id,child_id,name,relationship,registered_by_user_id,status,valid_from,valid_to) VALUES(?,?,?,?,?,'PENDING',?,?)",c.get("org_id"),child,name,relation,user,from,to);return jdbc.queryForMap("SELECT id,child_id AS childId,name,relationship,status,valid_from AS validFrom,valid_to AS validTo FROM authorized_pickup_persons WHERE id=LAST_INSERT_ID()");}
+
+    @GetMapping("/orgs/{orgId}/authorized-pickup-persons")
+    public Map<String,Object> orgPersons(@PathVariable("orgId")long org,@RequestHeader(name="Authorization",required=false)String auth,@RequestParam(name="limit",defaultValue="20")int limit,@RequestParam(name="cursor",required=false)String cursor){
+        long user=tokens.requireUser(auth);staff(org,user);if(limit<1||limit>100)bad("limit은 1~100이어야 합니다.");long after=0;if(cursor!=null&&!cursor.isBlank())try{after=Long.parseLong(cursor);if(after<1)bad("cursor 값이 올바르지 않습니다.");}catch(NumberFormatException e){bad("cursor 값이 올바르지 않습니다.");}
+        List<Map<String,Object>> rows=jdbc.queryForList("SELECT p.id,p.child_id AS childId,c.name AS childName,p.name,p.relationship,p.status,p.valid_from AS validFrom,p.valid_to AS validTo,p.registered_by_user_id AS guardianUserId,u.name AS guardianName,p.created_at AS createdAt FROM authorized_pickup_persons p JOIN children c ON c.id=p.child_id JOIN users u ON u.id=p.registered_by_user_id WHERE p.org_id=? AND p.id>? ORDER BY p.id DESC LIMIT ?",org,after,limit+1);
+        boolean more=rows.size()>limit;List<Map<String,Object>> items=rows.subList(0,Math.min(limit,rows.size()));Map<String,Object> result=new LinkedHashMap<>();result.put("items",items);result.put("nextCursor",more?String.valueOf(items.get(items.size()-1).get("id")):null);return result;
+    }
 
     @PostMapping("/orgs/{orgId}/authorized-pickup-persons/{personId}/review")
     public Map<String,Object> review(@PathVariable("orgId")long org,@PathVariable("personId")long id,@RequestHeader(name="Authorization",required=false)String auth,@RequestBody Map<String,Object>b){long user=tokens.requireUser(auth);Long staff=staff(org,user);String decision=text(b.get("decision"),"decision").toUpperCase();if(!List.of("APPROVED","REJECTED").contains(decision))bad("decision은 APPROVED 또는 REJECTED여야 합니다.");int n=jdbc.update("UPDATE authorized_pickup_persons SET status=?,reviewed_by_staff_id=?,reviewed_at=CURRENT_TIMESTAMP(3),updated_at=CURRENT_TIMESTAMP(3) WHERE org_id=? AND id=? AND status='PENDING'",decision,staff,org,id);if(n==0)throw new ResponseStatusException(HttpStatus.CONFLICT,"심사 대기 중인 인원을 찾지 못했습니다.");return jdbc.queryForMap("SELECT id,child_id AS childId,name,relationship,status,reviewed_at AS reviewedAt FROM authorized_pickup_persons WHERE org_id=? AND id=?",org,id);}

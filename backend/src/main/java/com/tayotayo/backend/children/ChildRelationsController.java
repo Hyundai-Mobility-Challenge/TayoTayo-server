@@ -52,7 +52,7 @@ public class ChildRelationsController {
     @GetMapping("/me/children")
     public Map<String,Object> myChildren(@RequestHeader(name="Authorization",required=false)String auth,@RequestParam(name="limit",defaultValue="20")int limit,@RequestParam(name="cursor",required=false)String cursor){
         long user=tokens.requireUser(auth);if(limit<1||limit>100)bad("limit은 1~100이어야 합니다.");long after=cursor(cursor);
-        List<Map<String,Object>> rows=jdbc.queryForList("SELECT c.id,c.org_id AS orgId,o.name AS orgName,c.name,c.class_name AS className,cg.relationship,cg.is_primary AS isPrimary FROM child_guardians cg JOIN children c ON c.id=cg.child_id JOIN organizations o ON o.id=c.org_id WHERE cg.user_id=? AND cg.status='ACTIVE' AND c.deleted_at IS NULL AND c.id>? ORDER BY c.id LIMIT ?",user,after,limit+1);return page(rows,limit);
+        List<Map<String,Object>> rows=jdbc.queryForList("SELECT c.id,c.org_id AS orgId,o.name AS orgName,c.name,c.class_name AS className,cg.relationship,cg.is_primary AS isPrimary FROM children c JOIN organizations o ON o.id=c.org_id JOIN child_guardians cg ON cg.id=(SELECT MAX(cg2.id) FROM child_guardians cg2 WHERE cg2.child_id=c.id AND cg2.user_id=? AND cg2.status='ACTIVE') WHERE c.deleted_at IS NULL AND c.id>? AND cg.id IS NOT NULL ORDER BY c.id LIMIT ?",user,after,limit+1);return page(rows,limit);
     }
 
     private Map<String,Object> page(List<Map<String,Object>> rows,int size){boolean more=rows.size()>size;List<Map<String,Object>> items=rows.subList(0,Math.min(size,rows.size()));Map<String,Object> out=new LinkedHashMap<>();out.put("items",items);out.put("nextCursor",more?String.valueOf(items.get(items.size()-1).get("id")):null);return out;}

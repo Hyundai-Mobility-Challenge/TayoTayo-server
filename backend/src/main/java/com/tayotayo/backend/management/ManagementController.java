@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -98,10 +99,20 @@ public class ManagementController {
         if (body.containsKey("address")) jdbc.update("UPDATE stops SET address = ? WHERE org_id = ? AND id = ?", optionalText(body, "address", 255), orgId, stopId);
         if (body.containsKey("latitude")) jdbc.update("UPDATE stops SET latitude = ? WHERE org_id = ? AND id = ?", requiredNumber(body, "latitude", -90, 90), orgId, stopId);
         if (body.containsKey("longitude")) jdbc.update("UPDATE stops SET longitude = ? WHERE org_id = ? AND id = ?", requiredNumber(body, "longitude", -180, 180), orgId, stopId);
+        if (body.containsKey("arrivalRadiusM")) jdbc.update("UPDATE stops SET arrival_radius_m = ? WHERE org_id = ? AND id = ?", (int) requiredNumber(body, "arrivalRadiusM", 1, 32767), orgId, stopId);
         if (body.containsKey("memo")) jdbc.update("UPDATE stops SET memo = ? WHERE org_id = ? AND id = ?", optionalText(body, "memo", 255), orgId, stopId);
         if (body.containsKey("isActive")) jdbc.update("UPDATE stops SET is_active = ? WHERE org_id = ? AND id = ?", Boolean.TRUE.equals(body.get("isActive")), orgId, stopId);
         jdbc.update("UPDATE stops SET updated_at = CURRENT_TIMESTAMP(3) WHERE org_id = ? AND id = ?", orgId, stopId);
         return findOne("SELECT id, org_id AS orgId, name, address, latitude, longitude, arrival_radius_m AS arrivalRadiusM, memo, is_active AS isActive FROM stops WHERE org_id = ? AND id = ? AND deleted_at IS NULL", orgId, stopId);
+    }
+
+    @DeleteMapping("/stops/{stopId}") @Transactional
+    public Map<String, Object> deleteStop(@PathVariable("orgId") long orgId, @PathVariable("stopId") long stopId) {
+        requireExists("SELECT COUNT(*) FROM stops WHERE org_id = ? AND id = ? AND deleted_at IS NULL", orgId, stopId);
+        // Trips keep their own stop snapshots. Remove this stop only from future route definitions.
+        jdbc.update("DELETE FROM route_stops WHERE org_id = ? AND stop_id = ?", orgId, stopId);
+        jdbc.update("UPDATE stops SET is_active = 0, deleted_at = CURRENT_TIMESTAMP(3), updated_at = CURRENT_TIMESTAMP(3) WHERE org_id = ? AND id = ? AND deleted_at IS NULL", orgId, stopId);
+        return Map.of("id", stopId, "deleted", true, "message", "정류장이 삭제 처리되었습니다. 기존 운행 기록은 보존됩니다.");
     }
 
     @GetMapping("/routes")
@@ -127,7 +138,9 @@ public class ManagementController {
 
     @GetMapping("/routes/{routeId}")
     public Map<String, Object> route(@PathVariable("orgId") long orgId, @PathVariable("routeId") long routeId) {
-        return findOne("SELECT id, org_id AS orgId, vehicle_id AS vehicleId, name, direction, departure_time AS departureTime, is_active AS isActive FROM routes WHERE org_id = ? AND id = ? AND deleted_at IS NULL", orgId, routeId);
+        Map<String, Object> route = findOne("SELECT id, org_id AS orgId, vehicle_id AS vehicleId, name, direction, departure_time AS departureTime, is_active AS isActive FROM routes WHERE org_id = ? AND id = ? AND deleted_at IS NULL", orgId, routeId);
+        route.put("stops", jdbc.queryForList("SELECT rs.stop_id AS stopId, s.name, s.address, rs.default_seq AS sequence FROM route_stops rs JOIN stops s ON s.id = rs.stop_id WHERE rs.org_id = ? AND rs.route_id = ? ORDER BY rs.default_seq", orgId, routeId));
+        return route;
     }
 
     @PatchMapping("/routes/{routeId}")
@@ -149,6 +162,15 @@ public class ManagementController {
         if (body.containsKey("isActive")) jdbc.update("UPDATE routes SET is_active = ? WHERE org_id = ? AND id = ?", Boolean.TRUE.equals(body.get("isActive")), orgId, routeId);
         jdbc.update("UPDATE routes SET updated_at = CURRENT_TIMESTAMP(3) WHERE org_id = ? AND id = ?", orgId, routeId);
         return route(orgId, routeId);
+    }
+
+    @DeleteMapping("/routes/{routeId}") @Transactional
+    public Map<String, Object> deleteRoute(@PathVariable("orgId") long orgId, @PathVariable("routeId") long routeId) {
+        requireExists("SELECT COUNT(*) FROM routes WHERE org_id = ? AND id = ? AND deleted_at IS NULL", orgId, routeId);
+        Integer running = jdbc.queryForObject("SELECT COUNT(*) FROM trips WHERE org_id = ? AND route_id = ? AND status IN ('PREPARING','IN_PROGRESS','RETURNING')", Integer.class, orgId, routeId);
+        if (running != null && running > 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "준비 중이거나 운행 중인 운행이 있어 노선을 삭제할 수 없습니다.");
+        jdbc.update("UPDATE routes SET is_active = 0, deleted_at = CURRENT_TIMESTAMP(3), updated_at = CURRENT_TIMESTAMP(3) WHERE org_id = ? AND id = ? AND deleted_at IS NULL", orgId, routeId);
+        return Map.of("id", routeId, "deleted", true, "message", "노선이 삭제 처리되었습니다. 기존 운행 기록은 보존됩니다.");
     }
 
     @PutMapping("/routes/{routeId}/stops")

@@ -39,6 +39,18 @@ public class TripController {
         return getTrip(trip);
     }
 
+    @GetMapping("/orgs/{orgId}/trips")
+    public Map<String,Object> organizationTrips(@PathVariable("orgId")long org,@RequestHeader(name="Authorization",required=false)String auth,
+            @RequestParam(name="serviceDate",required=false)String serviceDate,@RequestParam(name="direction",required=false)String direction) {
+        tokens.requireUser(auth);
+        LocalDate date=serviceDate==null||serviceDate.isBlank()?LocalDate.now():date(serviceDate);
+        StringBuilder sql=new StringBuilder("SELECT t.id,t.org_id AS orgId,t.vehicle_id AS vehicleId,v.name AS vehicleName,t.route_id AS routeId,r.name AS routeName,t.direction,t.service_date AS serviceDate,t.status,t.started_at AS startedAt,t.ended_at AS endedAt,(SELECT COUNT(*) FROM trip_children tc WHERE tc.trip_id=t.id) AS childCount FROM trips t JOIN vehicles v ON v.id=t.vehicle_id LEFT JOIN routes r ON r.id=t.route_id WHERE t.org_id=? AND t.service_date=?");
+        if(direction!=null&&!direction.isBlank())sql.append(" AND t.direction=?");
+        sql.append(" ORDER BY t.id DESC");
+        List<Map<String,Object>> items=direction==null||direction.isBlank()?jdbc.queryForList(sql.toString(),org,java.sql.Date.valueOf(date)):jdbc.queryForList(sql.toString(),org,java.sql.Date.valueOf(date),direction(direction));
+        Map<String,Object> response=new LinkedHashMap<>();response.put("items",items);response.put("nextCursor",null);return response;
+    }
+
     @GetMapping("/trips/{tripId}") public Map<String,Object> get(@PathVariable("tripId")long id,@RequestHeader(name="Authorization",required=false)String auth){tokens.requireUser(auth);return getTrip(id);}
 
     @GetMapping("/vehicle/trips") public Map<String,Object> vehicleTrips(@RequestHeader(name="X-Vehicle-Credential",required=false)String credential,@RequestParam(name="limit",defaultValue="20")int limit,@RequestParam(name="cursor",required=false)String cursor,@RequestParam(name="direction",required=false)String direction){long device=device(credential);if(limit<1||limit>100)bad("limit은 1~100이어야 합니다.");long after=cursor(cursor);String sql="SELECT id,org_id AS orgId,vehicle_id AS vehicleId,direction,service_date AS serviceDate,status FROM trips WHERE vehicle_device_id=? AND service_date=CURRENT_DATE AND id>?";if(direction!=null)sql+=" AND direction=?";sql+=" ORDER BY id DESC LIMIT ?";List<Map<String,Object>> rows=direction==null?jdbc.queryForList(sql,device,after,limit+1):jdbc.queryForList(sql,device,after,direction,limit+1);return page(rows,limit);}
@@ -87,7 +99,7 @@ public class TripController {
     }
     private long requireDeviceTripId(long trip,String credential){long d=device(credential);exists("SELECT COUNT(*) FROM trips WHERE id=? AND vehicle_device_id=?",trip,d);return d;}
 
-    private Map<String,Object> getTrip(long id){List<Map<String,Object>>r=jdbc.queryForList("SELECT id,client_trip_id AS clientTripId,org_id AS orgId,vehicle_id AS vehicleId,route_id AS routeId,direction,service_date AS serviceDate,status,driver_checked_at AS driverCheckedAt,started_at AS startedAt,ended_at AS endedAt FROM trips WHERE id=?",id);if(r.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"운행을 찾을 수 없습니다.");Map<String,Object> out=new LinkedHashMap<>(r.get(0));out.put("stops",jdbc.queryForList("SELECT id,stop_id AS stopId,seq,stop_name AS stopName,status,arrived_at AS arrivedAt,completed_at AS completedAt FROM trip_stops WHERE trip_id=? ORDER BY seq",id));out.put("children",jdbc.queryForList("SELECT id AS tripChildId,child_id AS childId,child_name AS childName,boarding_expected AS boardingExpected,status,trip_stop_id AS tripStopId FROM trip_children WHERE trip_id=? ORDER BY id",id));return out;}
+    private Map<String,Object> getTrip(long id){List<Map<String,Object>>r=jdbc.queryForList("SELECT id,client_trip_id AS clientTripId,org_id AS orgId,vehicle_id AS vehicleId,route_id AS routeId,direction,service_date AS serviceDate,status,driver_checked_at AS driverCheckedAt,started_at AS startedAt,ended_at AS endedAt FROM trips WHERE id=?",id);if(r.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"운행을 찾을 수 없습니다.");Map<String,Object> out=new LinkedHashMap<>(r.get(0));out.put("stops",jdbc.queryForList("SELECT id,stop_id AS stopId,seq,stop_name AS stopName,latitude,longitude,status,arrived_at AS arrivedAt,completed_at AS completedAt FROM trip_stops WHERE trip_id=? ORDER BY seq",id));out.put("children",jdbc.queryForList("SELECT id AS tripChildId,child_id AS childId,child_name AS childName,boarding_expected AS boardingExpected,status,trip_stop_id AS tripStopId FROM trip_children WHERE trip_id=? ORDER BY id",id));return out;}
     private long device(String credential){if(credential==null||credential.isBlank())throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"차량 credential이 필요합니다.");List<Map<String,Object>>r=jdbc.queryForList("SELECT id FROM vehicle_devices WHERE credential_hash=SHA2(?,256) AND revoked_at IS NULL",credential);if(r.isEmpty())throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"차량 credential이 유효하지 않습니다.");return ((Number)r.get(0).get("id")).longValue();}
     private void requireDeviceTrip(long trip,String credential){long device=device(credential);exists("SELECT COUNT(*) FROM trips WHERE id=? AND vehicle_device_id=?",trip,device);}
     private void exists(String q,Object...a){Integer n=jdbc.queryForObject(q,Integer.class,a);if(n==null||n==0)throw new ResponseStatusException(HttpStatus.NOT_FOUND,"대상을 찾을 수 없습니다.");}

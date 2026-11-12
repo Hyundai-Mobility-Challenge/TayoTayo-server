@@ -60,7 +60,9 @@ public class InvitationController {
     public Map<String,Object> acceptGuardian(@RequestHeader(name="Authorization",required=false) String auth,@RequestBody Map<String,Object> body){
         long user=tokens.requireUser(auth);Map<String,Object> invite=one("SELECT id,org_id,child_id,invitee_email,relationship FROM guardian_invitations WHERE code_hash=? AND status='PENDING' AND expires_at>CURRENT_TIMESTAMP(3)",sha(val(body.get("code"),"code")));
         String email=jdbc.queryForObject("SELECT email FROM users WHERE id=? AND status='ACTIVE'",String.class,user);if(!email.equalsIgnoreCase(String.valueOf(invite.get("invitee_email"))))throw new ResponseStatusException(HttpStatus.FORBIDDEN,"초대받은 이메일 계정으로 로그인해야 합니다.");
-        jdbc.update("INSERT INTO child_guardians(child_id,user_id,relationship,invitation_id,status) VALUES(?,?,?,?,'ACTIVE')",invite.get("child_id"),user,invite.get("relationship"),invite.get("id"));
+        jdbc.queryForObject("SELECT id FROM children WHERE id=? FOR UPDATE",Long.class,invite.get("child_id"));
+        List<Map<String,Object>> existing=jdbc.queryForList("SELECT id FROM child_guardians WHERE child_id=? AND user_id=? AND status='ACTIVE' ORDER BY id DESC LIMIT 1",invite.get("child_id"),user);
+        if(existing.isEmpty())jdbc.update("INSERT INTO child_guardians(child_id,user_id,relationship,invitation_id,status) VALUES(?,?,?,?,'ACTIVE')",invite.get("child_id"),user,invite.get("relationship"),invite.get("id"));
         jdbc.update("UPDATE guardian_invitations SET status='ACCEPTED',accepted_at=CURRENT_TIMESTAMP(3),accepted_by_user_id=? WHERE id=?",user,invite.get("id"));
         return Map.of("childId",invite.get("child_id"),"userId",user,"relationship",invite.get("relationship"),"status","ACTIVE");
     }

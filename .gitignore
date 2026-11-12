@@ -1,8 +1,25 @@
-.gradle/
-build/
-bin/
-.settings/
-.classpath
-.project
+# Gradle and Java outputs
+**/.gradle/
+**/build/
+**/bin/
 *.class
+
+# STS/Eclipse and IntelliJ local project settings
+**/.settings/
+**/.classpath
+**/.project
+**/.idea/
+*.iml
+
+# Local credentials and machine-specific Android configuration
 .env
+.env.*
+**/.env
+**/.env.*
+**/firebase-service-account*.json
+**/*firebase-adminsdk*.json
+**/.secrets/
+ShuttleMate/local.properties
+
+# Logs
+*.log
