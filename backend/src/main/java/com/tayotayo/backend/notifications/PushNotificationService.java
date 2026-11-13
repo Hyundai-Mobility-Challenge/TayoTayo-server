@@ -65,9 +65,10 @@ public class PushNotificationService {
                 INSERT INTO notifications(user_id,child_id,trip_id,trip_event_id,notification_type,dedupe_key,title,body,data,status)
                 SELECT cg.user_id,tc.child_id,tc.trip_id,?,'DROPPED_OFF',
                        CONCAT('trip:',tc.trip_id,':event:',? ,':DROPPED_OFF:',cg.user_id),
-                       '하차 안내',CONCAT(tc.child_name,'이(가) 셔틀에서 하차했습니다.'),
+                       CASE WHEN t.direction='PICK_UP' THEN '등원 완료' ELSE '하차 안내' END,CASE WHEN t.direction='PICK_UP' THEN CONCAT(tc.child_name,'이(가) 기관 선생님께 인계되었습니다.') ELSE CONCAT(tc.child_name,'이(가) 셔틀에서 하차했습니다.') END,
                        JSON_OBJECT('type','DROPPED_OFF','tripId',tc.trip_id,'childId',tc.child_id),'PENDING'
                 FROM trip_children tc
+                JOIN trips t ON t.id=tc.trip_id
                 JOIN child_guardians cg ON cg.child_id=tc.child_id AND cg.status='ACTIVE'
                 WHERE tc.trip_id=? AND tc.id=?
                   AND NOT EXISTS (SELECT 1 FROM notifications n WHERE n.dedupe_key=CONCAT('trip:',tc.trip_id,':event:',? ,':DROPPED_OFF:',cg.user_id))

@@ -1,6 +1,6 @@
 -- ERDCloud import schema: original MySQL model updated for the meeting decisions.
 -- This is a full schema model, not a data-preserving ALTER migration.
--- Direction: DROP_OFF = morning to institution; PICK_UP = afternoon from institution.
+-- Direction: PICK_UP = morning to institution; DROP_OFF = afternoon from institution.
 -- Seat assignments and belt telemetry are intentionally excluded.
 
 CREATE DATABASE IF NOT EXISTS `tayotayo`

@@ -241,12 +241,12 @@ LAN IP가 바뀌면 휴대폰·에뮬레이터의 서버 주소와, 관리자 �
 {
   "vehicleId": "차량 ID",
   "name": "아침 등원 노선",
-  "direction": "DROP_OFF",
+  "direction": "PICK_UP",
   "departureTime": "08:30:00"
 }
 ```
 
-`direction`은 등원 `DROP_OFF` 또는 하원 `PICK_UP`입니다.
+`direction`은 등원 `PICK_UP` 또는 하원 `DROP_OFF`입니다.
 
 ### 5-6. 노선에 정류장 넣기
 

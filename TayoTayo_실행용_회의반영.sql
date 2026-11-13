@@ -1,6 +1,6 @@
 -- Meeting-updated MySQL execution schema. Target: tayotayo_dev.
 -- Full schema initializer for an empty development database; not an ALTER migration.
--- Direction: DROP_OFF = morning to institution; PICK_UP = afternoon from institution.
+-- Direction: PICK_UP = morning to institution; DROP_OFF = afternoon from institution.
 -- Seat assignment and belt telemetry are intentionally omitted.
 
 -- Meeting-updated TayoTayo schema for MySQL 8.0.13+

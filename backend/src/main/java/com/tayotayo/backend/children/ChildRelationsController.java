@@ -38,7 +38,8 @@ public class ChildRelationsController {
         exists("SELECT COUNT(*) FROM routes WHERE org_id=? AND id=? AND vehicle_id=? AND deleted_at IS NULL",org,route,vehicle);exists("SELECT COUNT(*) FROM stops WHERE org_id=? AND id=? AND deleted_at IS NULL",org,stop);
         int weekdays=b.get("weekdays") instanceof Number n?n.intValue():31;if(weekdays<1||weekdays>127)bad("weekdays는 1~127이어야 합니다.");
         LocalDate from=date(b.get("effectiveFrom"),LocalDate.now()),to=date(b.get("effectiveTo"),null);if(to!=null&&to.isBefore(from))bad("effectiveTo는 effectiveFrom보다 빠를 수 없습니다.");
-        jdbc.update("UPDATE child_route_assignments SET effective_to=DATE_SUB(?,INTERVAL 1 DAY),updated_at=CURRENT_TIMESTAMP(3) WHERE org_id=? AND child_id=? AND effective_to IS NULL AND effective_from<?",java.sql.Date.valueOf(from),org,child,java.sql.Date.valueOf(from));
+        String routeDirection=jdbc.queryForObject("SELECT direction FROM routes WHERE org_id=? AND id=? AND vehicle_id=? AND deleted_at IS NULL",String.class,org,route,vehicle);
+        jdbc.update("UPDATE child_route_assignments a JOIN routes r ON r.id=a.route_id AND r.org_id=a.org_id SET a.effective_to=DATE_SUB(?,INTERVAL 1 DAY),a.updated_at=CURRENT_TIMESTAMP(3) WHERE a.org_id=? AND a.child_id=? AND r.direction=? AND a.effective_to IS NULL AND a.effective_from<?",java.sql.Date.valueOf(from),org,child,routeDirection,java.sql.Date.valueOf(from));
         jdbc.update("INSERT INTO child_route_assignments(org_id,child_id,route_id,vehicle_id,stop_id,weekdays,effective_from,effective_to) VALUES(?,?,?,?,?,?,?,?)",org,child,route,vehicle,stop,weekdays,java.sql.Date.valueOf(from),to==null?null:java.sql.Date.valueOf(to));
         return Map.of("childId",child,"routeId",route,"vehicleId",vehicle,"stopId",stop,"weekdays",weekdays,"effectiveFrom",from.toString(),"effectiveTo",to==null?"":to.toString());
     }

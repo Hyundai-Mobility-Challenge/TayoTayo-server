@@ -8872,7 +8872,7 @@
         "name": "direction",
         "in": "query",
         "required": true,
-        "description": "등원 운행 또는 하원 운행. DROP_OFF=등원, PICK_UP=하원",
+        "description": "등원 운행 또는 하원 운행. PICK_UP=등원, DROP_OFF=하원",
         "schema": {
           "type": "string",
           "enum": [
@@ -9520,9 +9520,15 @@
           "driverConfirmed": {
             "type": "boolean",
             "description": "음성 요약을 들은 뒤 기사가 확인했다고 교사가 체크했는지 여부"
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "단말에서 확인한 시각(ISO 8601). 생략하면 서버 시각을 사용합니다."
           }
         },
-        "description": "확인 시각은 서버가 기록합니다. 미확인 상태에서도 운행 출발은 허용하며 미확인 이력을 남깁니다."
+        "description": "미확인 상태에서도 운행 출발은 허용하며 미확인 이력을 남깁니다."
       },
       "GuardianCallOpen": {
         "type": "object",

@@ -39,7 +39,9 @@ public class AttendanceRequestController {
         if(person!=null)exists("SELECT COUNT(*) FROM authorized_pickup_persons WHERE child_id=? AND id=?",child,person);
         jdbc.update("INSERT INTO attendance_requests(org_id,child_id,requested_by_user_id,service_date,direction,request_type,reason_code,reason_text,requested_stop_id,pickup_person_id,pickup_guardian_user_id,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,'PENDING')",
                 childRow.get("org_id"),child,user,java.sql.Date.valueOf(date),direction,type,b.get("reasonCode"),b.get("reasonText"),stop,person,guardian);
-        return one("SELECT id,child_id AS childId,service_date AS serviceDate,direction,request_type AS requestType,status,created_at AS createdAt FROM attendance_requests WHERE id=LAST_INSERT_ID()");
+        Long requestId=jdbc.queryForObject("SELECT LAST_INSERT_ID()",Long.class);
+        if(List.of("ABSENT","SELF_PICKUP","NOT_RIDING").contains(type)){jdbc.update("UPDATE trip_children tc JOIN trips t ON t.id=tc.trip_id JOIN attendance_requests ar ON ar.id=? SET tc.boarding_expected=0,tc.status='NOT_BOARDED',tc.not_boarded_reason=ar.request_type,tc.attendance_request_id=ar.id,tc.updated_at=CURRENT_TIMESTAMP(3) WHERE tc.child_id=? AND t.org_id=? AND t.service_date=? AND t.direction=? AND t.status IN ('PREPARING','IN_PROGRESS') AND tc.status='EXPECTED'",requestId,child,childRow.get("org_id"),java.sql.Date.valueOf(date),direction);}
+        return one("SELECT id,child_id AS childId,service_date AS serviceDate,direction,request_type AS requestType,status,created_at AS createdAt FROM attendance_requests WHERE id=?",requestId);
     }
 
     @GetMapping("/orgs/{orgId}/attendance-requests")
