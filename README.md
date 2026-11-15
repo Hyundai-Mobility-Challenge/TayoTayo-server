@@ -10,6 +10,18 @@ Pleos 차량 앱이 보낸 탑승·도착·인계·하차 기록을 저장하고
 | Pleos 차량 앱 (대표 저장소) | [TayoTayo-vehicle](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle) |
 | 보호자 앱 | [TayoTayo-parent](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent) |
 
+## 심사위원용 등원 시연
+
+시연 서버와 MySQL은 이미 실행 중입니다. 심사위원 PC에는 서버 설치가 필요하지 않습니다. 차량 앱과 보호자 앱에 입력할 서버 주소는 `https://api-demo-e677ea0e.up.railway.app`입니다.
+
+1. [공개 서버의 Swagger](https://api-demo-e677ea0e.up.railway.app/swagger-ui.html)를 엽니다. `POST /auth/login`에서 이메일 `orgs@example.com`, 별도 전달받은 심사용 관리자 비밀번호, `clientType=ADMIN_WEB`로 로그인하고 응답의 `accessToken`을 **Authorize → BearerAuth**에 입력합니다.
+2. 아래 **Swagger로 등원 시연 준비하기**의 3단계대로 기관과 차량 번호에 각각 `1`을 넣어 페어링 코드를 발급합니다. 차량 앱에서 서버 주소와 코드를 입력하고 연결 완료를 확인합니다.
+3. 같은 안내의 4단계대로 한국 기준 오늘 날짜에 `PICK_UP` 운행을 한 건 생성합니다. 차량 앱에서 **등원 → 오늘 운행 목록**을 엽니다. Swagger로 목록을 확인할 때도 `direction=PICK_UP`을 선택합니다.
+4. 보호자 앱은 HTTPS 서버 설정을 지원하는 빌드를 사용합니다. 서버 주소를 입력하고 별도 전달받은 심사용 보호자 계정으로 로그인하면 김하늘이 이미 연결되어 있습니다. 기존 `v0.2-invitations` APK는 로그인 화면에서 서버 주소를 바꿀 수 없습니다.
+5. 차량에서 차례대로 판교역·야탑역·성남시청 도착과 원아 탑승을 기록하고 기관 인계·실내 확인·운행 종료를 진행합니다. 보호자 화면에서 새로고침해 김하늘의 등원 상태를 확인합니다. 이 서버에서는 휴대폰 푸시 전송을 사용하지 않습니다.
+
+[서버와 DB 연결 상태 확인](https://api-demo-e677ea0e.up.railway.app/health/database) · [시연 서버 배포 설정](deploy/README.md)
+
 ## 서버가 맡는 일
 
 ```mermaid
