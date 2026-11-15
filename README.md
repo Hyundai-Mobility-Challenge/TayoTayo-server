@@ -47,9 +47,9 @@ stateDiagram-v2
 
 ## 시작하기
 
-차량 앱과 보호자 앱에 입력할 서버 주소는 `https://api-demo-e677ea0e.up.railway.app`입니다. 주소 끝에 `/api/v1`이나 `/swagger-ui.html`을 붙이지 마세요. 서버와 MySQL은 이미 실행 중이며, [DB 연결 상태](https://api-demo-e677ea0e.up.railway.app/health/database)에서 `UP`을 확인할 수 있습니다.
+두 앱이 사용하는 서버 주소는 `https://api-demo-e677ea0e.up.railway.app`입니다. 주소 끝에 `/api/v1`이나 `/swagger-ui.html`을 붙이지 마세요. 서버와 MySQL은 이미 실행 중이며, [DB 연결 상태](https://api-demo-e677ea0e.up.railway.app/health/database)에서 `UP`을 확인할 수 있습니다.
 
-**준비물**은 Pleos Connect 에뮬레이터의 [차량 APK](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle/releases/download/v1.0.0/TayoTayo-1.0.0.apk), Android 기기의 HTTPS 연결용 보호자 앱, 별도로 전달받은 관리자·보호자 비밀번호입니다. 보호자 앱 `v0.2-invitations`에는 서버 주소 입력 메뉴가 없습니다. HTTPS 지원 릴리스가 올라오기 전에는 팀이 전달한 HTTPS 지원 APK 또는 보호자 저장소의 디버그 빌드를 사용하세요. [보호자 릴리스](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent/releases) · [디버그 빌드 방법](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent#시작하기)
+Pleos Connect 에뮬레이터에 [차량 APK](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle/releases/download/v1.0.0/TayoTayo-1.0.0.apk)를, Android 9 이상 휴대폰 또는 에뮬레이터에 [보호자 APK 0.3-local-demo](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent/releases/download/v0.3-local-demo/TayoTayo-parent-0.3-local-demo.apk)를 설치합니다. 기관 관리자와 보호자 비밀번호는 심사 안내로 별도 전달됩니다.
 
 ### 관리자 로그인과 차량 페어링
 
@@ -82,7 +82,7 @@ stateDiagram-v2
 
 ### 두 앱에서 등원 확인하기
 
-1. 보호자 앱 로그인 화면에서 같은 HTTPS 주소를 설정하고 `pickup-judge@example.com`과 전달받은 **보호자 비밀번호**로 로그인합니다. 김하늘이 이미 연결돼 있어 가입과 어린이 초대 코드 입력은 생략합니다.
+1. 보호자 앱은 첫 설치 시 위 HTTPS 주소에 연결됩니다. 이전 서버 주소가 저장돼 있다면 로그인 화면의 **서버 주소 설정 → 적용**에서 바꾸세요. `pickup-judge@example.com`과 전달받은 **보호자 비밀번호**로 로그인합니다. 김하늘이 이미 연결돼 있어 가입과 어린이 초대 코드 입력은 생략합니다.
 2. 차량에서 **준비 마침 · 순서 확인** 후 운행을 시작합니다. 성남시 **판교역 김하늘 → 야탑역 김바다 → 성남시청 이마음** 순서입니다. Pleos Virtual Console에서 정류장마다 기어 P·차속 0으로 정차한 뒤 도착을 확인합니다. 아이를 넘겨준 사람 유형을 고르고 **인계받음 → 탑승 → 벨트 확인**을 기록합니다.
 3. 마지막 정류장을 마치면 **기관 도착 확인** 후 탑승한 아이마다 **기관 인계 확인 · 하차 기록**을 누릅니다. 실내를 직접 확인하고 **운행 종료**를 누릅니다.
 4. 보호자 앱을 새로고침해 김하늘의 탑승·하차 기록을 확인합니다. 휴대폰 푸시는 이 시연 서버에서 꺼져 있습니다. 관리자 Swagger에서도 `GET /trips/{tripId}`에 위 운행 번호를 넣어 `status=COMPLETED`와 세 아이의 `status=DROPPED_OFF`를 확인할 수 있습니다.
