@@ -24,7 +24,7 @@ MySQL PC에서도 원격 연결을 허용하고, Windows 방화벽의 `3306` 포
 
 ### 어떤 SQL 파일을 실행하나요?
 
-처음 개발 DB를 준비하는 경우 프로젝트 루트에 있는 **[`TayoTayo_실행용_회의반영.sql`](../TayoTayo_실행용_회의반영.sql)**을 사용합니다. 이 파일은 회의 결정이 반영된 MySQL 전체 스키마이며, `tayotayo_dev` 데이터베이스를 선택하고 서비스가 사용하는 테이블을 만듭니다.
+처음 개발 DB를 준비하는 경우 프로젝트 루트에 있는 **[`TayoTayo_실행용_회의반영.sql`](./TayoTayo_실행용_회의반영.sql)**을 사용합니다. 이 파일은 회의 결정이 반영된 MySQL 전체 스키마이며, `tayotayo_dev` 데이터베이스를 선택하고 서비스가 사용하는 테이블을 만듭니다.
 
 다른 SQL 파일은 목적이 다르므로 백엔드 개발 DB를 처음 준비할 때 섞어서 실행하지 마세요.
 
@@ -273,7 +273,7 @@ LAN IP가 바뀌면 휴대폰·에뮬레이터의 서버 주소와, 관리자 �
   "vehicleId": "차량 ID",
   "stopId": "정류장 ID",
   "weekdays": 31,
-  "effectiveFrom": "2026-11-11"
+  "effectiveFrom": "YYYY-MM-DD"
 }
 ```
 
@@ -321,7 +321,7 @@ Body:
   "clientTripId": "b6d5a28f-627f-4ef5-a2e3-2a0637f04c21",
   "vehicleId": "차량 ID",
   "routeId": "노선 ID",
-  "serviceDate": "2026-11-11",
+  "serviceDate": "YYYY-MM-DD",
   "direction": "DROP_OFF"
 }
 ```
@@ -358,7 +358,7 @@ Body:
 {
   "clientEventId": "c5a0977d-5528-47e2-a3b1-975da8e0cb4a",
   "eventType": "CHILD_BOARDED",
-  "occurredAt": "2026-11-11T08:31:00+09:00",
+  "occurredAt": "YYYY-MM-DDTHH:mm:ss+09:00",
   "tripChildId": "운행 아이 ID",
   "tripStopId": "운행 정류장 ID"
 }
@@ -409,7 +409,7 @@ SELECT * FROM trip_events ORDER BY id DESC;
 
 1. Firebase Console에서 사용할 Firebase 프로젝트를 엽니다. 테스트용 앱의 FCM 등록 토큰과 서버 키는 **같은 Firebase 프로젝트**에 속해야 합니다.
 2. 프로젝트 설정의 **서비스 계정** 탭에서 비공개 키(JSON)를 생성해 다운로드합니다.
-3. JSON 파일은 프로젝트/Git 폴더 바깥에 보관합니다. 예: `C:\Users\SSAFY\firebase-keys\tayotayo-service-account.json`. 이 파일을 채팅이나 Git에 올리지 않습니다.
+3. JSON 파일은 프로젝트/Git 폴더 바깥에 보관합니다. 예: `C:\firebase-keys\tayotayo-service-account.json`. 이 파일은 저장소 폴더 밖에 보관하고 채팅이나 Git에 올리지 않습니다. 저장소 루트에 서비스 계정 키가 이미 존재한다면 즉시 키를 폐기·재발급하고, 새 키를 저장소 밖에 보관하세요.
 4. Firebase Console의 Cloud Messaging 설정에서 Firebase Cloud Messaging API가 활성화되어 있는지 확인합니다.
 
 ### 11-2. STS에 Firebase 환경 변수 입력
@@ -419,7 +419,7 @@ SELECT * FROM trip_events ORDER BY id DESC;
 3. **Environment** 탭에서 아래 변수를 추가합니다. 파일 경로와 프로젝트 ID는 실제 값으로 바꿉니다.
 
    - `FIREBASE_ENABLED` = `true`
-   - `FIREBASE_CREDENTIALS_PATH` = `C:\Users\SSAFY\firebase-keys\tayotayo-service-account.json`
+   - `FIREBASE_CREDENTIALS_PATH` = `C:\firebase-keys\tayotayo-service-account.json`
    - `FIREBASE_PROJECT_ID` = Firebase 프로젝트 설정에 표시된 프로젝트 ID
 
 4. **Apply > Run**으로 서버를 시작합니다. 키 파일 경로가 틀리거나 JSON이 유효하지 않으면 시작 로그에 원인이 표시됩니다. 서비스 계정 JSON은 Firebase Console의 **프로젝트 설정 > 서비스 계정 > 새 비공개 키 생성**에서 받습니다. 앱용 `google-services.json`은 서버 키가 아닙니다. `FIREBASE_ENABLED`가 `false`이거나 설정이 빠지면 서버는 실행되지만 실제 푸시 발송은 꺼져 있습니다. 설정 전에 생성된 도착·하차 알림은 `PENDING`으로 남고, FCM이 켜진 상태로 서버를 시작하면 다시 발송을 시도합니다.
@@ -485,3 +485,4 @@ ORDER BY nd.id DESC LIMIT 20;
 - FCM 발송은 서비스 계정 경로와 실제 앱 토큰을 등록한 경우에만 활성화됩니다.
 - access token은 현재 개발용 메모리 저장소를 사용하므로 서버를 재시작하면 기존 토큰이 무효가 됩니다.
 - 좌석·안전벨트 상태는 서버에서 저장하지 않습니다.
+
