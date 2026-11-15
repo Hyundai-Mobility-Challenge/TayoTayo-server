@@ -1,6 +1,14 @@
 # TayoTayo 서버·시연 시작 안내
 
 연동 앱과 전체 소스는 [대표 저장소 · 차량 앱](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle)에서 확인할 수 있습니다. [보호자 앱](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent)에는 설치용 APK와 계정 연결 방법이 있습니다.
+| 구성 | 저장소 / 위치 |
+| --- | --- |
+| 서버·API | 이 저장소 (`backend/`) |
+| 관리자 웹 | [TayoTayo-web](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-web) · 이 저장소의 [`web/`](web/) 서브모듈 |
+| 차량 앱 | [TayoTayo-vehicle](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle) |
+| 보호자 앱 | [TayoTayo-parent](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent) |
+
+저장소를 새로 받을 때는 `git clone --recurse-submodules`를 사용하면 `web/`도 함께 내려받습니다. 이미 clone한 경우 `git submodule update --init --recursive`로 초기화하세요. 서브모듈은 웹 저장소의 고정 커밋을 가리키므로 웹 변경사항 반영은 이 저장소의 서브모듈 참조도 갱신해야 합니다.
 
 ## 1. 준비물
 

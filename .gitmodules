@@ -1,0 +1,4 @@
+[submodule "web"]
+	path = web
+	url = https://github.com/Hyundai-Mobility-Challenge/TayoTayo-web.git
+	branch = main
