@@ -49,7 +49,7 @@ stateDiagram-v2
 
 두 앱이 사용하는 서버 주소는 `https://api-demo-e677ea0e.up.railway.app`입니다. 주소 끝에 `/api/v1`이나 `/swagger-ui.html`을 붙이지 마세요. 서버와 MySQL은 이미 실행 중이며, [DB 연결 상태](https://api-demo-e677ea0e.up.railway.app/health/database)에서 `UP`을 확인할 수 있습니다.
 
-Pleos Connect 에뮬레이터에 [차량 APK](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle/releases/download/v1.0.0/TayoTayo-1.0.0.apk)를, Android 9 이상 휴대폰 또는 에뮬레이터에 [보호자 APK 0.3-local-demo](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent/releases/download/v0.3-local-demo/TayoTayo-parent-0.3-local-demo.apk)를 설치합니다. 기관 관리자와 보호자 비밀번호는 심사 안내로 별도 전달됩니다.
+Pleos Connect 에뮬레이터에 [차량 APK](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle/releases/download/v1.0.1/TayoTayo-vehicle-1.0.1-release.apk)를, Android 9 이상 휴대폰 또는 에뮬레이터에 [보호자 APK 0.3-local-demo](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent/releases/download/v0.3-local-demo/TayoTayo-parent-0.3-local-demo.apk)를 설치합니다. 기관 관리자와 보호자 비밀번호는 심사 안내로 별도 전달됩니다.
 
 ### 관리자 로그인과 차량 페어링
 
