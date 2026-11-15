@@ -49,14 +49,15 @@ stateDiagram-v2
 
 ### 준비물
 
-- Java 21, MySQL 8, Node.js 20 이상(관리자 웹)
-- 실행 스크립트는 Windows 기준입니다. MySQL은 서버와 같은 PC에서 실행하는 구성을 기본으로 합니다.
+Windows PC에 Java 21과 MySQL 8을 준비합니다. MySQL 서비스와 데이터베이스를 만들 수 있는 계정이 필요합니다. 첫 Gradle 빌드에는 인터넷 연결이 필요합니다.
+
+GitHub에서 **Code → Download ZIP**을 눌러 압축을 풀거나 아래 명령으로 서버를 받습니다. 아래 등원 시연은 서버에 포함된 Swagger UI로 진행하므로 관리자 웹과 Node.js 설치를 생략할 수 있습니다.
 
 ```sh
-git clone --recurse-submodules https://github.com/Hyundai-Mobility-Challenge/TayoTayo-server.git
+git clone https://github.com/Hyundai-Mobility-Challenge/TayoTayo-server.git
 ```
 
-이미 받았다면 `git submodule update --init --recursive`로 `web/`을 초기화합니다. 서브모듈은 웹 저장소의 고정 커밋을 가리키므로, 웹 변경을 반영하려면 이 저장소의 서브모듈 참조도 갱신해야 합니다.
+관리자 웹도 실행할 팀원은 웹 저장소 접근 권한과 Node.js 20 이상을 준비한 뒤 `git submodule update --init --recursive`로 `web/`을 받습니다.
 
 ### 1. 데이터베이스 만들기
 
@@ -69,7 +70,7 @@ git clone --recurse-submodules https://github.com/Hyundai-Mobility-Challenge/Tay
 
 1. `backend\start-server.bat`을 실행합니다.
 2. 처음 실행하면 MySQL 주소·포트·DB 이름·계정·비밀번호를 묻습니다. 같은 PC의 기본값은 `127.0.0.1`, `3306`, `tayotayo_dev`, `ssafy`이며, 입력값은 `backend\.secrets\server.properties`에 저장됩니다(Git 제외).
-3. 시작이 끝나면 [http://localhost:8080/health](http://localhost:8080/health)로 확인합니다. API 문서는 [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)입니다.
+3. 시작이 끝나면 [http://localhost:8080/health](http://localhost:8080/health)와 [DB 연결 상태](http://localhost:8080/health/database)를 차례로 확인합니다. API 문서는 [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)입니다.
 4. 종료는 실행 창에서 `Ctrl+C`입니다.
 
 | 접속하는 곳 | 서버 주소 |
@@ -80,22 +81,49 @@ git clone --recurse-submodules https://github.com/Hyundai-Mobility-Challenge/Tay
 
 앱에는 호스트와 포트만 입력합니다. `/api/v1`은 앱이 붙입니다.
 
-### 3. 데모 데이터로 시연하기
+### 3. Swagger로 등원 시연 준비하기
 
-| 항목 | 데모 값 |
-| --- | --- |
-| 관리자 계정 | `orgs@example.com` / `orgspass123` (기관 ID `1`) |
-| 데이터 | 차량 ID `1`, 원아 ID `1`~`3`, 오늘 날짜의 오전 등원 운행 1건(`PREPARING`) |
-| 차량용 API 점검 credential | `DEMO-HASAL-VEHICLE-1` |
+초기 SQL에는 햇살 유치원(기관 `1`), 햇살 1호차(차량 `1`), 오전 등원 노선(`1`), 정류장 3곳과 원아 3명의 배정이 들어 있습니다. 함께 생성되는 등원 운행 1건은 SQL의 테스트 기기에 연결됩니다. **새 차량 앱을 먼저 페어링하고 그 기기에서 불러올 오늘 운행을 한 건 생성하세요.**
 
-시연용 비밀번호와 credential은 외부 공개나 운영 환경에 사용하지 마세요.
+**앱 준비.** 위 표의 로컬 HTTP 주소로 시연할 때는 차량·보호자 앱의 디버그 빌드를 사용합니다. 차량 앱은 Pleos Connect 에뮬레이터에서, 보호자 앱은 Android 에뮬레이터나 같은 Wi-Fi의 휴대폰에서 실행합니다. [차량 앱 빌드 안내](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle#시작하기) · [보호자 앱 빌드 안내](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent#시작하기)
 
-1. [TayoTayo-web README](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-web)대로 관리자 웹을 실행하고 데모 계정으로 로그인합니다.
-2. **원아 명단**에서 원아의 **보호자 초대**를 눌러 초대 코드를 발급하고, 보호자 앱의 아이 연결 화면에 입력합니다. 보호자 계정은 앱에서 먼저 만듭니다.
-3. **차량 관리**에서 햇살 1호차의 **코드 발급**을 눌러 차량 페어링 코드를 받고, 차량 앱의 차량 연결 화면에 입력합니다.
-4. 운행은 SQL이 오늘 날짜로 하나 만들어 둡니다. 날짜나 배정을 바꿔 새 운행이 필요하면 **운행 관리**에서 해당 날짜에 유효한 원아 배정을 확인한 뒤 노선으로 운행을 만듭니다.
+[Swagger UI](http://localhost:8080/swagger-ui.html)에서 아래 경로를 열고 **Try it out → Execute**를 누릅니다. Swagger가 `/api/v1`을 붙입니다. 경로의 `orgId`, `vehicleId`, `childId`에는 아래에서 지정한 숫자를 입력합니다.
 
-개발용 이메일 인증 코드는 실제로 발송되지 않고 웹 가입 화면에 표시됩니다.
+1. **관리자 로그인.** `POST /auth/login`의 요청 본문에 아래 값을 넣습니다. 응답의 `accessToken`을 복사해 상단 **Authorize → BearerAuth**에 토큰 값만 입력합니다.
+
+   ```json
+   {"email":"orgs@example.com","password":"orgspass123","clientType":"ADMIN_WEB"}
+   ```
+
+2. **기관 좌표 확인.** `GET /orgs/{orgId}`에 `orgId=1`을 넣습니다. 새 DB라면 시연용 가상 목적지의 `latitude`는 `37.4186`, `longitude`는 `127.1286`입니다. 이전 시드로 만든 **데모 DB**에서 좌표가 비어 있으면 `PATCH /orgs/{orgId}`에 `{"latitude":37.4186,"longitude":127.1286}`을 보냅니다. 기존 DB를 초기화할 필요는 없습니다.
+
+3. **차량 페어링.** `POST /orgs/{orgId}/vehicles/{vehicleId}/pairing-codes`에 기관과 차량 모두 `1`, 본문 `{"expiresIn":600}`을 입력합니다. 응답의 6자리 `code`를 **10분 안에 차량 앱의 기관 연결 화면**에 서버 주소와 함께 입력합니다. 앞자리가 0이면 그대로 입력하고, 앱에 연결 완료가 표시된 뒤 다음 단계로 갑니다.
+
+4. **오늘 등원 운행 생성.** PowerShell에서 아래 명령을 실행하면 오늘 날짜와 새 운행 식별자가 담긴 JSON이 출력됩니다. 출력 전체를 `POST /orgs/{orgId}/trips`(`orgId=1`)의 요청 본문에 붙여 넣고 한 번 실행합니다. `serviceDate`는 서버 DB의 오늘 날짜와 같아야 합니다.
+
+   ```powershell
+   @{
+       clientTripId = [guid]::NewGuid().ToString()
+       vehicleId    = "1"
+       routeId      = "1"
+       serviceDate  = Get-Date -Format 'yyyy-MM-dd'
+       direction    = "PICK_UP"
+   } | ConvertTo-Json
+   ```
+
+   응답에서 운행 `id`, `status=PREPARING`, `stops` 3개, `children` 3명을 확인합니다. 차량 앱에서 **등원 → 오늘 운행 목록**을 열어 방금 만든 운행을 선택합니다. 명단은 **판교역 김하늘 → 야탑역 김바다 → 성남시청 이마음** 순서입니다. 목록이 비면 페어링이 완료된 시각이 운행 생성보다 앞서는지, 운행 날짜와 등원 방향이 맞는지 확인합니다.
+
+5. **보호자 앱에 김하늘 연결.** 보호자 앱의 **개발 서버 설정**에서 같은 서버를 지정한 뒤 시연용 이메일로 가입·로그인합니다. 개발용 가입 인증번호는 앱에 표시됩니다. 관리자 Swagger에서 `POST /orgs/{orgId}/children/{childId}/guardian-invitations`에 `orgId=1`, `childId=1`을 넣고, 아래 이메일을 **방금 가입한 주소로 바꿔** 요청합니다.
+
+   ```json
+   {"email":"guardian@example.com","relationship":"OTHER"}
+   ```
+
+   응답의 `invitationCode`를 보호자 앱 **초대 코드 연결**에 입력합니다. 보호자 홈에 김하늘이 표시되면 연결이 끝납니다.
+
+**등원 시연 순서.** 차량에서 배정 명단을 확인하고 출발합니다. 정류장마다 차량을 P·속도 0으로 정차하고 **보호자에게서 인계받음 → 탑승 기록**을 진행합니다. 마지막 정류장을 마치면 기관으로 이동해 **기관 도착 → 탑승한 아이별 기관 인계 → 실내 확인 → 운행 종료** 순서로 마칩니다. Swagger의 `GET /trips/{tripId}`에 4단계에서 받은 운행 ID를 넣어 `status=COMPLETED`와 아이별 기록을 확인할 수 있습니다. Firebase 설정은 휴대폰 푸시를 시험할 때 필요합니다.
+
+기본 관리자 계정과 시드 기기의 API 점검용 credential(`DEMO-HASAL-VEHICLE-1`)은 로컬 데모용입니다. 차량 앱 연결에는 3단계에서 발급한 일회성 코드를 사용합니다.
 
 ## 설정
 
