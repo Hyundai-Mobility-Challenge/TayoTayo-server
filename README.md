@@ -12,15 +12,47 @@ Pleos 차량 앱이 보낸 탑승·도착·인계·하차 기록을 저장하고
 
 ## 심사위원용 등원 시연
 
-시연 서버와 MySQL은 이미 실행 중입니다. 심사위원 PC에는 서버 설치가 필요하지 않습니다. 차량 앱과 보호자 앱에 입력할 서버 주소는 `https://api-demo-e677ea0e.up.railway.app`입니다.
+차량 앱과 보호자 앱에 입력할 서버 주소는 `https://api-demo-e677ea0e.up.railway.app`입니다. 주소 끝에 `/api/v1`이나 `/swagger-ui.html`을 붙이지 마세요. 서버와 MySQL은 이미 실행 중이며, [DB 연결 상태](https://api-demo-e677ea0e.up.railway.app/health/database)에서 `UP`을 확인할 수 있습니다.
 
-1. [공개 서버의 Swagger](https://api-demo-e677ea0e.up.railway.app/swagger-ui.html)를 엽니다. `POST /auth/login`에서 이메일 `orgs@example.com`, 별도 전달받은 심사용 관리자 비밀번호, `clientType=ADMIN_WEB`로 로그인하고 응답의 `accessToken`을 **Authorize → BearerAuth**에 입력합니다.
-2. 아래 **Swagger로 등원 시연 준비하기**의 3단계대로 기관과 차량 번호에 각각 `1`을 넣어 페어링 코드를 발급합니다. 차량 앱에서 서버 주소와 코드를 입력하고 연결 완료를 확인합니다.
-3. 같은 안내의 4단계대로 한국 기준 오늘 날짜에 `PICK_UP` 운행을 한 건 생성합니다. 차량 앱에서 **등원 → 오늘 운행 목록**을 엽니다. Swagger로 목록을 확인할 때도 `direction=PICK_UP`을 선택합니다.
-4. 보호자 앱은 HTTPS 서버 설정을 지원하는 빌드를 사용합니다. 서버 주소를 입력하고 별도 전달받은 심사용 보호자 계정으로 로그인하면 김하늘이 이미 연결되어 있습니다. 기존 `v0.2-invitations` APK는 로그인 화면에서 서버 주소를 바꿀 수 없습니다.
-5. 차량에서 차례대로 판교역·야탑역·성남시청 도착과 원아 탑승을 기록하고 기관 인계·실내 확인·운행 종료를 진행합니다. 보호자 화면에서 새로고침해 김하늘의 등원 상태를 확인합니다. 이 서버에서는 휴대폰 푸시 전송을 사용하지 않습니다.
+**준비물**은 Pleos Connect 에뮬레이터의 [차량 APK](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle/releases/download/v1.0.0/TayoTayo-1.0.0.apk), Android 기기의 HTTPS 연결용 보호자 앱, 별도로 전달받은 관리자·보호자 비밀번호입니다. 보호자 앱 `v0.2-invitations`에는 서버 주소 입력 메뉴가 없습니다. HTTPS 지원 릴리스가 올라오기 전에는 팀이 전달한 HTTPS 지원 APK 또는 보호자 저장소의 디버그 빌드를 사용하세요. [보호자 릴리스](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent/releases) · [디버그 빌드 방법](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent#시작하기)
 
-[서버와 DB 연결 상태 확인](https://api-demo-e677ea0e.up.railway.app/health/database) · [시연 서버 배포 설정](deploy/README.md)
+### 관리자 로그인과 차량 페어링
+
+1. PC에서 [시연 서버 Swagger](https://api-demo-e677ea0e.up.railway.app/swagger-ui.html)를 엽니다. 각 API는 펼친 뒤 **Try it out**으로 값을 편집하고 **Execute**로 실행합니다.
+2. `POST /auth/login`에 아래 JSON을 넣고 비밀번호 자리를 전달받은 **기관 관리자 비밀번호**로 바꿉니다. 응답의 `accessToken` 값만 복사해 화면 상단 **Authorize → BearerAuth → Authorize**에 입력하고 **Close**를 누릅니다.
+
+   ```json
+   {"email":"orgs@example.com","password":"전달받은 관리자 비밀번호","clientType":"ADMIN_WEB"}
+   ```
+
+3. `POST /orgs/{orgId}/vehicles/{vehicleId}/pairing-codes`에서 `orgId`와 `vehicleId`에 각각 `1`, 요청 본문에 `{"expiresIn":600}`을 넣습니다. 응답의 6자리 `code`를 앞자리 0까지 그대로 사용합니다. 10분이 지나면 새 코드를 발급하세요.
+4. 차량 앱의 **기관 · 차량 연결** 화면에 위 HTTPS 주소와 코드를 넣고 **차량 연결**을 누릅니다. **연결 완료를 확인한 다음** 아래 운행을 생성하세요. 운행은 생성 시점에 가장 최근에 페어링된 기기에 배정됩니다.
+
+### 차량 연결 후 오늘 운행 만들기
+
+1. PC의 PowerShell에서 아래 명령을 한 번 실행합니다. 한국 기준 오늘 날짜와 새 운행 식별자가 들어간 요청 본문이 출력됩니다.
+
+   ```powershell
+   @{
+       clientTripId = [guid]::NewGuid().ToString()
+       vehicleId    = "1"
+       routeId      = "1"
+       serviceDate  = [DateTimeOffset]::UtcNow.ToOffset([TimeSpan]::FromHours(9)).ToString('yyyy-MM-dd')
+       direction    = "PICK_UP"
+   } | ConvertTo-Json
+   ```
+
+2. 같은 Swagger에서 `POST /orgs/{orgId}/trips`를 엽니다. `orgId`에 `1`을 넣고 **기본 요청 예시 전체를 방금 출력한 JSON으로 교체**한 뒤 한 번 실행합니다. 응답에서 운행 번호 `id`, `status=PREPARING`, 정류장(`stops`) 3곳, 원아(`children`) 3명을 확인합니다.
+3. 차량 앱의 **기관 연결 → 등원 → 배정 명단으로 운행 준비**를 누릅니다. 선택 목록이 뜨면 방금 만든 운행 번호의 **이 운행 준비**를 누릅니다. 명단이 비면 차량을 연결한 뒤 운행을 만들었는지, 날짜가 한국 기준 오늘이고 방향이 `PICK_UP`인지 확인하세요.
+
+### 두 앱에서 등원 확인하기
+
+1. 보호자 앱 로그인 화면에서 같은 HTTPS 주소를 설정하고 `pickup-judge@example.com`과 전달받은 **보호자 비밀번호**로 로그인합니다. 김하늘이 이미 연결돼 있어 가입과 어린이 초대 코드 입력은 생략합니다.
+2. 차량에서 **준비 마침 · 순서 확인** 후 운행을 시작합니다. 성남시 **판교역 김하늘 → 야탑역 김바다 → 성남시청 이마음** 순서입니다. Pleos Virtual Console에서 정류장마다 기어 P·차속 0으로 정차한 뒤 도착을 확인합니다. 아이를 넘겨준 사람 유형을 고르고 **인계받음 → 탑승 → 벨트 확인**을 기록합니다.
+3. 마지막 정류장을 마치면 **기관 도착 확인** 후 탑승한 아이마다 **기관 인계 확인 · 하차 기록**을 누릅니다. 실내를 직접 확인하고 **운행 종료**를 누릅니다.
+4. 보호자 앱을 새로고침해 김하늘의 탑승·하차 기록을 확인합니다. 휴대폰 푸시는 이 시연 서버에서 꺼져 있습니다. 관리자 Swagger에서도 `GET /trips/{tripId}`에 위 운행 번호를 넣어 `status=COMPLETED`와 세 아이의 `status=DROPPED_OFF`를 확인할 수 있습니다.
+
+[시연 서버 배포 설정](deploy/README.md)
 
 ## 서버가 맡는 일
 
@@ -58,6 +90,8 @@ stateDiagram-v2
 정류장은 `PENDING → ARRIVED → COMPLETED`(또는 `SKIPPED`) 순서로 바뀝니다. 상태 순서에 맞지 않는 요청은 `409 Conflict`로 거절하고, 완료되지 않은 정류장이 남아 있으면 운행을 종료하지 않습니다.
 
 ## 빠르게 실행하기
+
+아래는 개발자가 PC에서 별도 서버를 실행하는 절차입니다. 배포된 서버로 테스트하려면 [심사위원용 등원 시연](#심사위원용-등원-시연)을 이용하세요.
 
 ### 준비물
 
@@ -101,7 +135,7 @@ git clone https://github.com/Hyundai-Mobility-Challenge/TayoTayo-server.git
 
 [Swagger UI](http://localhost:8080/swagger-ui.html)에서 아래 경로를 열고 **Try it out → Execute**를 누릅니다. Swagger가 `/api/v1`을 붙입니다. 경로의 `orgId`, `vehicleId`, `childId`에는 아래에서 지정한 숫자를 입력합니다.
 
-1. **관리자 로그인.** `POST /auth/login`의 요청 본문에 아래 값을 넣습니다. 응답의 `accessToken`을 복사해 상단 **Authorize → BearerAuth**에 토큰 값만 입력합니다.
+1. **로컬 관리자 로그인.** `POST /auth/login`의 요청 본문에 아래 값을 넣습니다. 응답의 `accessToken`을 복사해 상단 **Authorize → BearerAuth**에 토큰 값만 입력합니다.
 
    ```json
    {"email":"orgs@example.com","password":"orgspass123","clientType":"ADMIN_WEB"}
@@ -123,7 +157,7 @@ git clone https://github.com/Hyundai-Mobility-Challenge/TayoTayo-server.git
    } | ConvertTo-Json
    ```
 
-   응답에서 운행 `id`, `status=PREPARING`, `stops` 3개, `children` 3명을 확인합니다. 차량 앱에서 **등원 → 오늘 운행 목록**을 열어 방금 만든 운행을 선택합니다. 명단은 **판교역 김하늘 → 야탑역 김바다 → 성남시청 이마음** 순서입니다. 목록이 비면 페어링이 완료된 시각이 운행 생성보다 앞서는지, 운행 날짜와 등원 방향이 맞는지 확인합니다.
+   응답에서 운행 `id`, `status=PREPARING`, `stops` 3개, `children` 3명을 확인합니다. 차량 앱에서 **등원 → 배정 명단으로 운행 준비**를 누르고, 선택 목록이 뜨면 방금 만든 운행을 고릅니다. 명단은 **판교역 김하늘 → 야탑역 김바다 → 성남시청 이마음** 순서입니다. 목록이 비면 페어링이 완료된 시각이 운행 생성보다 앞서는지, 운행 날짜와 등원 방향이 맞는지 확인합니다.
 
 5. **보호자 앱에 김하늘 연결.** 보호자 앱의 **개발 서버 설정**에서 같은 서버를 지정한 뒤 시연용 이메일로 가입·로그인합니다. 개발용 가입 인증번호는 앱에 표시됩니다. 관리자 Swagger에서 `POST /orgs/{orgId}/children/{childId}/guardian-invitations`에 `orgId=1`, `childId=1`을 넣고, 아래 이메일을 **방금 가입한 주소로 바꿔** 요청합니다.
 
