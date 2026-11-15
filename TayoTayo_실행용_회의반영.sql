@@ -756,8 +756,9 @@ ALTER TABLE `guardian_call_requests` ADD CONSTRAINT `fk_guardian_call_requests_c
 -- Demo login: orgs@example.com / orgspass123 (ADMIN_WEB)
 -- Demo vehicle credential for API smoke tests: DEMO-HASAL-VEHICLE-1
 -- Demo stops use approximate coordinates around Pangyo, Yatap, and Seongnam City Hall.
-INSERT INTO `organizations` (`id`,`name`,`org_type`,`status`) VALUES
-  (1,'햇살 유치원','KINDERGARTEN','ACTIVE');
+-- Fictional destination for the morning demo; child pickup stops are seeded separately below.
+INSERT INTO `organizations` (`id`,`name`,`org_type`,`latitude`,`longitude`,`status`) VALUES
+  (1,'햇살 유치원','KINDERGARTEN',37.4186,127.1286,'ACTIVE');
 
 -- Password hash uses the same PBKDF2-HMAC-SHA256 format and 120,000 iterations as AuthController.
 INSERT INTO `users` (`id`,`email`,`password_hash`,`name`,`email_verified_at`,`status`) VALUES
