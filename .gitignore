@@ -23,3 +23,6 @@ ShuttleMate/local.properties
 
 # Logs
 *.log
+
+# Firebase service-account keys (never commit)
+tayotayo-service-account.json

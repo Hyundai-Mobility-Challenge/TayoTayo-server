@@ -750,3 +750,53 @@ ALTER TABLE `daily_pickups` ADD CONSTRAINT `fk_daily_pickups_updated_by_user_id`
 ALTER TABLE `guardian_call_requests` ADD CONSTRAINT `fk_guardian_call_requests_trip_id` FOREIGN KEY (`trip_id`) REFERENCES `trips` (`id`) ON UPDATE CASCADE ON DELETE RESTRICT;
 ALTER TABLE `guardian_call_requests` ADD CONSTRAINT `fk_guardian_call_requests_trip_child_id` FOREIGN KEY (`trip_child_id`) REFERENCES `trip_children` (`id`) ON UPDATE CASCADE ON DELETE RESTRICT;
 ALTER TABLE `guardian_call_requests` ADD CONSTRAINT `fk_guardian_call_requests_created_by_staff_id` FOREIGN KEY (`created_by_staff_id`) REFERENCES `org_staff` (`id`) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+-- Demo data for a fresh tayotayo_dev database.
+-- Fixed IDs intentionally make the example predictable; do not run this against an existing schema.
+-- Demo login: orgs@example.com / orgspass123 (ADMIN_WEB)
+-- Demo vehicle credential for API smoke tests: DEMO-HASAL-VEHICLE-1
+-- Demo stops use approximate coordinates around Pangyo, Yatap, and Seongnam City Hall.
+INSERT INTO `organizations` (`id`,`name`,`org_type`,`status`) VALUES
+  (1,'햇살 유치원','KINDERGARTEN','ACTIVE');
+
+-- Password hash uses the same PBKDF2-HMAC-SHA256 format and 120,000 iterations as AuthController.
+INSERT INTO `users` (`id`,`email`,`password_hash`,`name`,`email_verified_at`,`status`) VALUES
+  (1,'orgs@example.com','pbkdf2$AAECAwQFBgcICQoLDA0ODw==$ay8ZAsavzjx89WqtaEvKRt4OZF8qwBtdbAbEwiuyDZI=','orgs',CURRENT_TIMESTAMP(3),'ACTIVE');
+INSERT INTO `org_staff` (`id`,`org_id`,`user_id`,`name`,`staff_role`,`web_role`,`status`) VALUES
+  (1,1,1,'orgs 관리자','ADMIN','OWNER','ACTIVE');
+
+INSERT INTO `vehicles` (`id`,`org_id`,`name`,`plate_number`,`model`,`seat_capacity`,`status`) VALUES
+  (1,1,'햇살 1호차','12가3456','셔틀버스',20,'ACTIVE');
+INSERT INTO `vehicle_devices` (`id`,`org_id`,`vehicle_id`,`install_id`,`credential_hash`,`app_version`,`pleos_sdk_version`) VALUES
+  (1,1,1,'00000000-0000-4000-8000-000000000001',SHA2('DEMO-HASAL-VEHICLE-1',256),'demo','demo');
+
+INSERT INTO `stops` (`id`,`org_id`,`name`,`address`,`latitude`,`longitude`,`arrival_radius_m`,`is_active`) VALUES
+  (1,1,'판교역','경기 성남시 분당구 판교역로 160',37.3948,127.1112,50,1),
+  (2,1,'야탑역','경기 성남시 분당구 성남대로 903',37.4113,127.1287,50,1),
+  (3,1,'성남시청','경기 성남시 중원구 성남대로 997',37.4201,127.1265,50,1);
+
+INSERT INTO `routes` (`id`,`org_id`,`vehicle_id`,`name`,`direction`,`departure_time`,`is_active`) VALUES
+  (1,1,1,'오전 등원 노선','PICK_UP','08:30:00',1);
+INSERT INTO `route_stops` (`org_id`,`route_id`,`stop_id`,`default_seq`) VALUES
+  (1,1,1,1),(1,1,2,2),(1,1,3,3);
+
+INSERT INTO `children` (`id`,`org_id`,`name`,`class_name`,`status`) VALUES
+  (1,1,'김하늘','햇살반','ACTIVE'),
+  (2,1,'김바다','햇살반','ACTIVE'),
+  (3,1,'이마음','햇살반','ACTIVE');
+INSERT INTO `child_route_assignments` (`org_id`,`child_id`,`route_id`,`vehicle_id`,`stop_id`,`weekdays`,`effective_from`) VALUES
+  (1,1,1,1,1,31,CURRENT_DATE),
+  (1,2,1,1,2,31,CURRENT_DATE),
+  (1,3,1,1,3,31,CURRENT_DATE);
+
+-- One PREPARING trip for today, with the route stops and assigned children snapshotted.
+INSERT INTO `trips` (`id`,`client_trip_id`,`org_id`,`vehicle_id`,`route_id`,`vehicle_device_id`,`direction`,`service_date`,`status`) VALUES
+  (1,'00000000-0000-4000-8000-000000000101',1,1,1,1,'PICK_UP',CURRENT_DATE,'PREPARING');
+INSERT INTO `trip_stops` (`trip_id`,`stop_id`,`seq`,`stop_name`,`latitude`,`longitude`) VALUES
+  (1,1,1,'판교역',37.3948,127.1112),
+  (1,2,2,'야탑역',37.4113,127.1287),
+  (1,3,3,'성남시청',37.4201,127.1265);
+INSERT INTO `trip_children` (`org_id`,`trip_id`,`vehicle_id`,`child_id`,`trip_stop_id`,`child_name`,`boarding_expected`,`status`) VALUES
+  (1,1,1,1,1,'김하늘',1,'EXPECTED'),
+  (1,1,1,2,2,'김바다',1,'EXPECTED'),
+  (1,1,1,3,3,'이마음',1,'EXPECTED');
