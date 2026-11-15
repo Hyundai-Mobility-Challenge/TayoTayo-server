@@ -2,6 +2,8 @@
 
 이 문서는 처음 백엔드를 실행하는 사람이 **실행 파일과 Swagger UI만으로 회원가입부터 운행 테스트까지** 따라 할 수 있도록 정리했습니다. STS 실행 방법도 선택 항목으로 남겨 두었습니다.
 
+연동 앱과 전체 소스는 [대표 저장소 · 차량 앱](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle)에서 확인할 수 있습니다. [보호자 앱](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent)에는 설치용 APK와 계정 연결 방법이 있습니다.
+
 ## 1. 준비물
 
 - Java 21
