@@ -54,7 +54,7 @@ Pleos Connect 에뮬레이터에 [차량 APK](https://github.com/Hyundai-Mobilit
 ### 관리자 로그인과 차량 페어링
 
 1. PC에서 [시연 서버 Swagger](https://api-demo-e677ea0e.up.railway.app/swagger-ui.html)를 엽니다. 각 API는 펼친 뒤 **Try it out**으로 값을 편집하고 **Execute**로 실행합니다.
-2. `POST /auth/login`에 아래 JSON을 넣고 비밀번호 자리를 전달받은 **기관 관리자 비밀번호**로 바꿉니다. 응답의 `accessToken` 값만 복사해 화면 상단 **Authorize → BearerAuth → Authorize**에 입력하고 **Close**를 누릅니다.
+2. `POST /auth/login`에 아래 JSON을 넣고 비밀번호 자리를 전달받은 **기관 관리자 비밀번호**로 바꿉니다. 응답의 `accessToken` 값만 복사해 화면 상단 **Authorize → BearerAuth → Authorize**에 입력하고 **Close**를 누릅니다. 토큰 앞에 `Bearer `를 붙이거나 따옴표를 포함하면 인증에 실패할 수 있습니다.
 
    ```json
    {"email":"orgs@example.com","password":"전달받은 관리자 비밀번호","clientType":"ADMIN_WEB"}
@@ -78,7 +78,7 @@ Pleos Connect 에뮬레이터에 [차량 APK](https://github.com/Hyundai-Mobilit
    ```
 
 2. 같은 Swagger에서 `POST /orgs/{orgId}/trips`를 엽니다. `orgId`에 `1`을 넣고 **기본 요청 예시 전체를 방금 출력한 JSON으로 교체**한 뒤 한 번 실행합니다. 응답에서 운행 번호 `id`, `status=PREPARING`, 정류장(`stops`) 3곳, 원아(`children`) 3명을 확인합니다.
-3. 차량 앱의 **기관 연결 → 등원 → 배정 명단으로 운행 준비**를 누릅니다. 선택 목록이 뜨면 방금 만든 운행 번호의 **이 운행 준비**를 누릅니다. 명단이 비면 차량을 연결한 뒤 운행을 만들었는지, 날짜가 한국 기준 오늘이고 방향이 `PICK_UP`인지 확인하세요.
+3. 차량 앱의 **기관 연결 → 등원 → 배정 명단으로 운행 준비**를 누릅니다. 선택 목록이 뜨면 방금 만든 운행 번호의 **이 운행 준비**를 누릅니다. 명단이 비면 차량 연결을 유지한 채 한국 기준 오늘의 `PICK_UP` 운행이 페어링 이후에 생성됐는지 확인하세요. 해당 운행이 없으면 위 1~2단계로 한 건 생성한 뒤 **배정 명단으로 운행 준비**를 다시 누릅니다. 방금 생성한 운행 번호를 선택하면 판교역 김하늘, 야탑역 김바다, 성남시청 이마음이 표시됩니다.
 
 ### 두 앱에서 등원 확인하기
 
