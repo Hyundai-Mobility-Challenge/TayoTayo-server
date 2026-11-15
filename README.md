@@ -1,193 +1,146 @@
-# TayoTayo 서버·시연 시작 안내
+# 타요타요 기관 서버
 
-연동 앱과 전체 소스는 [대표 저장소 · 차량 앱](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle)에서 확인할 수 있습니다. [보호자 앱](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent)에는 설치용 APK와 계정 연결 방법이 있습니다.
+**통학 차량 한 번의 운행을 기관·차량·보호자가 같은 기록으로 보도록 저장하고 전달하는 API 서버입니다.**
+Pleos 차량 앱이 보낸 탑승·도착·인계·하차 기록을 저장하고, 보호자 앱과 기관 관리자 웹이 그 기록을 조회합니다. 도착과 하차 때는 해당 보호자에게 FCM 알림을 보냅니다.
+
 | 구성 | 저장소 / 위치 |
 | --- | --- |
-| 서버·API | 이 저장소 (`backend/`) |
-| 관리자 웹 | [TayoTayo-web](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-web) · 이 저장소의 [`web/`](web/) 서브모듈 |
-| 차량 앱 | [TayoTayo-vehicle](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle) |
+| 서버 · API | 이 저장소 [`backend/`](backend) |
+| 기관 관리자 웹 | [TayoTayo-web](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-web) · 이 저장소의 [`web/`](web) 서브모듈 |
+| Pleos 차량 앱 (대표 저장소) | [TayoTayo-vehicle](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-vehicle) |
 | 보호자 앱 | [TayoTayo-parent](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-parent) |
 
-저장소를 새로 받을 때는 `git clone --recurse-submodules`를 사용하면 `web/`도 함께 내려받습니다. 이미 clone한 경우 `git submodule update --init --recursive`로 초기화하세요. 서브모듈은 웹 저장소의 고정 커밋을 가리키므로 웹 변경사항 반영은 이 저장소의 서브모듈 참조도 갱신해야 합니다.
+## 서버가 맡는 일
 
-## 1. 준비물
+```mermaid
+flowchart LR
+    W["기관 관리자 웹"] -->|원아·노선·차량 배정, 코드 발급| S["기관 서버 (Spring Boot)"]
+    V["Pleos 차량 앱"] -->|X-Vehicle-Credential, 운행·이벤트·위치·ETA| S
+    G["보호자 앱"] -->|Bearer 토큰, 출결·마중 담당자| S
+    S --> DB[("MySQL tayotayo_dev")]
+    S -->|도착·하차 알림| F["Firebase Cloud Messaging"]
+    F --> G
+```
 
-- Windows PC, Java 21, MySQL 8, Node.js 20 이상
-- 프로젝트 폴더: 서버 `TayoTayo-server`, 관리자 웹 `TayoTayo-web`
-- MySQL은 서버와 같은 PC에서 실행하는 구성을 기본으로 합니다.
+| 영역 | 서버가 하는 일 |
+| --- | --- |
+| 기관 운영 | 기관·직원·차량·정류장·노선을 관리하고, 원아를 노선·차량·정류장·요일에 배정합니다. |
+| 연결 | 차량 페어링 코드(10분)와 보호자 초대 코드(7일)를 발급합니다. 차량 credential은 SHA-256 값만 저장합니다. |
+| 운행 기록 | 날짜·노선으로 운행을 만들 때 그날의 정류장 순서와 원아 명단을 복사해 둡니다. 이후 배정이 바뀌어도 지난 운행 기록은 그대로 남습니다. |
+| 위치·예상 시간 | 차량 앱이 보낸 위치와 내비 ETA를 출처·시각과 함께 저장합니다. 서버가 경로를 계산하거나 도착·하차를 판정하지는 않습니다. |
+| 보호자 | 연결된 아이 범위에서만 운행 진행, 출결 요청, 지정 인계자, 공유 링크, 알림을 처리합니다. |
+| 알림 | 알림을 DB에 먼저 기록하고 중복을 막은 뒤, Firebase 설정이 있으면 FCM으로 보냅니다. |
 
-## 2. SQL 데이터베이스 준비
+### 운행 상태
 
-새 개발 DB를 만들 때만 [실행용 SQL](./TayoTayo_실행용_회의반영.sql)을 MySQL Workbench에서 열어 전체 실행하세요. `tayotayo_dev` 데이터베이스와 테이블, 햇살 유치원 데모 데이터가 함께 생성됩니다.
+```mermaid
+stateDiagram-v2
+    [*] --> PREPARING: 기관이 운행 생성
+    PREPARING --> IN_PROGRESS: 차량 앱 출발
+    PREPARING --> CANCELLED: 준비 중 취소
+    IN_PROGRESS --> RETURNING: 정류장 처리 후 기관 복귀
+    RETURNING --> COMPLETED: 실내 확인 후 운행 종료
+    IN_PROGRESS --> COMPLETED: 등원 운행 종료
+```
 
-> 전체 초기화 파일입니다. 이미 테이블이나 데이터가 있는 DB에는 실행하지 마세요. 기존 DB를 초기화하거나 수정하는 migration 파일이 아닙니다.
+정류장은 `PENDING → ARRIVED → COMPLETED`(또는 `SKIPPED`) 순서로 바뀝니다. 상태 순서에 맞지 않는 요청은 `409 Conflict`로 거절하고, 완료되지 않은 정류장이 남아 있으면 운행을 종료하지 않습니다.
 
-데모 계정은 `orgs@example.com` / `orgspass123`이며 기관 ID는 `1`입니다. 차량 ID `1`, 원아 ID `1`~`3`, 오늘 날짜의 오전 등원 운행 1건도 준비됩니다. 시연용 비밀번호와 차량 credential은 외부 공개나 운영 환경에 사용하지 마세요.
+## 빠르게 실행하기
 
-## 3. 서버 실행하기 (STS 없이)
+### 준비물
 
-1. `TayoTayo-server\backend\start-server.bat`을 실행합니다.
-2. 처음 실행하면 MySQL 주소, 포트, DB 이름, 계정, 비밀번호를 입력합니다. 같은 PC의 기본값은 `127.0.0.1`, `3306`, `tayotayo_dev`, `ssafy`입니다. 입력한 값은 `backend\.secrets\server.properties`에 저장됩니다.
-3. 빌드와 서버 시작이 끝나면 브라우저에서 [http://localhost:8080/health](http://localhost:8080/health)를 열어 확인합니다. API 문서는 [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)입니다.
-4. 서버를 종료할 때는 실행 창에서 `Ctrl+C`를 누릅니다.
+- Java 21, MySQL 8, Node.js 20 이상(관리자 웹)
+- 실행 스크립트는 Windows 기준입니다. MySQL은 서버와 같은 PC에서 실행하는 구성을 기본으로 합니다.
 
-같은 Wi-Fi의 다른 기기에서 접속할 때는 실행 창에 표시되는 PC 주소를 사용하고, 필요하면 Windows 방화벽에서 개인 네트워크의 8080 포트를 허용하세요.
+```sh
+git clone --recurse-submodules https://github.com/Hyundai-Mobility-Challenge/TayoTayo-server.git
+```
 
-## 4. 데모 데이터로 웹·앱 시연하기
+이미 받았다면 `git submodule update --init --recursive`로 `web/`을 초기화합니다. 서브모듈은 웹 저장소의 고정 커밋을 가리키므로, 웹 변경을 반영하려면 이 저장소의 서브모듈 참조도 갱신해야 합니다.
 
-### 관리자 웹 열기
+### 1. 데이터베이스 만들기
 
-관리자 웹의 최신 실행 방법은 [TayoTayo-web 저장소 README](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-web)를 따라 진행하세요. 웹을 실행한 뒤 데모 계정 `orgs@example.com` / `orgspass123`으로 로그인하면 햇살 유치원 시연 데이터를 확인할 수 있습니다.
-### 시연 코드 발급
+새 개발 DB를 만들 때만 [실행용 SQL](TayoTayo_실행용_회의반영.sql)을 MySQL Workbench에서 열어 전체 실행합니다. `tayotayo_dev` 데이터베이스와 테이블, 햇살 유치원 데모 데이터가 함께 만들어집니다.
 
-- **보호자 초대 코드:** 웹의 **원아 명단**에서 원아 행의 **보호자 초대**를 누릅니다. 발급된 코드를 복사해 보호자 앱의 아이 연결 화면에 입력합니다. 코드는 7일 동안 유효하고 한 번 연결하면 재사용할 수 없습니다. 시연용 보호자 계정이 없다면 앱에서 계정을 먼저 만든 뒤 초대 코드를 사용하세요.
-- **차량 페어링 코드:** **차량 관리**에서 햇살 1호차의 **코드 발급**을 누릅니다. 앱의 차량 연결 화면에서 코드를 입력해 페어링합니다. 코드는 10분 동안 유효합니다. SQL에 미리 들어 있는 차량용 API 점검 credential은 `DEMO-HASAL-VEHICLE-1`입니다.
-- **운행:** SQL이 오늘 날짜로 `PREPARING` 운행을 하나 생성합니다. 웹 **운행 관리**에서 확인하고, 날짜나 배정 데이터를 바꿔 새 운행이 필요하면 해당 날짜에 유효한 원아 배정을 확인한 뒤 노선으로 운행을 생성하세요.
+> [!WARNING]
+> 전체 초기화 파일입니다. 이미 테이블이나 데이터가 있는 DB에는 실행하지 마세요. 기존 DB를 고치는 migration 파일이 아닙니다.
 
-개발용 이메일 인증 코드는 실제 이메일로 발송되지 않고 웹 가입 화면에 표시됩니다. 이미 준비된 데모 관리자 계정은 가입 절차 없이 바로 로그인할 수 있습니다.
-## 서버 폴더와 구현 기능 상세
+### 2. 서버 실행
 
-이 절은 데모 데이터 등록 절차가 아니라 저장소에 구현된 백엔드의 구조와 역할을 설명합니다. 실제 웹 화면은 별도 저장소인 [TayoTayo-web](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-web)에 있고, Android 앱도 이 서버 저장소와 별도로 관리됩니다. 서버는 두 클라이언트가 호출하는 HTTP API와 MySQL 데이터 처리를 담당합니다.
+1. `backend\start-server.bat`을 실행합니다.
+2. 처음 실행하면 MySQL 주소·포트·DB 이름·계정·비밀번호를 묻습니다. 같은 PC의 기본값은 `127.0.0.1`, `3306`, `tayotayo_dev`, `ssafy`이며, 입력값은 `backend\.secrets\server.properties`에 저장됩니다(Git 제외).
+3. 시작이 끝나면 [http://localhost:8080/health](http://localhost:8080/health)로 확인합니다. API 문서는 [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)입니다.
+4. 종료는 실행 창에서 `Ctrl+C`입니다.
 
-### 저장소 구성
+| 접속하는 곳 | 서버 주소 |
+| --- | --- |
+| 서버 PC 브라우저 | `http://127.0.0.1:8080` |
+| 같은 PC의 Android 에뮬레이터 | `http://10.0.2.2:8080` |
+| 같은 Wi-Fi의 휴대폰·다른 PC | `http://<서버 PC의 LAN IPv4>:8080` (필요하면 Windows 방화벽에서 8080 허용) |
+
+앱에는 호스트와 포트만 입력합니다. `/api/v1`은 앱이 붙입니다.
+
+### 3. 데모 데이터로 시연하기
+
+| 항목 | 데모 값 |
+| --- | --- |
+| 관리자 계정 | `orgs@example.com` / `orgspass123` (기관 ID `1`) |
+| 데이터 | 차량 ID `1`, 원아 ID `1`~`3`, 오늘 날짜의 오전 등원 운행 1건(`PREPARING`) |
+| 차량용 API 점검 credential | `DEMO-HASAL-VEHICLE-1` |
+
+시연용 비밀번호와 credential은 외부 공개나 운영 환경에 사용하지 마세요.
+
+1. [TayoTayo-web README](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-web)대로 관리자 웹을 실행하고 데모 계정으로 로그인합니다.
+2. **원아 명단**에서 원아의 **보호자 초대**를 눌러 초대 코드를 발급하고, 보호자 앱의 아이 연결 화면에 입력합니다. 보호자 계정은 앱에서 먼저 만듭니다.
+3. **차량 관리**에서 햇살 1호차의 **코드 발급**을 눌러 차량 페어링 코드를 받고, 차량 앱의 차량 연결 화면에 입력합니다.
+4. 운행은 SQL이 오늘 날짜로 하나 만들어 둡니다. 날짜나 배정을 바꿔 새 운행이 필요하면 **운행 관리**에서 해당 날짜에 유효한 원아 배정을 확인한 뒤 노선으로 운행을 만듭니다.
+
+개발용 이메일 인증 코드는 실제로 발송되지 않고 웹 가입 화면에 표시됩니다.
+
+## 설정
+
+| 설정 | 역할 | 기본값·주의 |
+| --- | --- | --- |
+| `DB_URL` | JDBC 주소 | `jdbc:mysql://127.0.0.1:3306/tayotayo_dev?...` |
+| `DB_USERNAME`, `DB_PASSWORD` | MySQL 로그인 | 첫 실행 때 입력해 로컬 파일에 저장 |
+| `FIREBASE_ENABLED` | FCM 전송 사용 | 기본 `false` |
+| `FIREBASE_CREDENTIALS_PATH` | Firebase Admin 서비스 계정 JSON 경로 | 저장소 밖의 키 파일 |
+| `FIREBASE_PROJECT_ID` | Firebase 프로젝트 ID | 서비스 계정의 `project_id`와 같아야 함 |
+| `FIREBASE_TEST_ENDPOINT_ENABLED` | 개발용 FCM 드라이런 API | 기본 `false`, 확인 후 끄기 |
+
+Kakao 지도 검색은 서버가 아니라 관리자 웹이 중계합니다. 서비스 계정 JSON, 실제 토큰, 비밀번호는 Git에 넣지 않습니다.
+
+## 기술 스택과 구조
+
+- **Java 21 · Spring Boot 4.1.2 · Spring MVC**: 컨트롤러가 요청을 받고 `JdbcTemplate`으로 MySQL을 읽고 씁니다.
+- **MySQL 8**: 스키마는 서버가 만들거나 바꾸지 않고 실행용 SQL로 준비합니다.
+- **Firebase Admin SDK**: 도착·하차 알림을 FCM으로 보냅니다.
+- **springdoc-openapi**: `/swagger-ui.html`에서 API를 시험합니다.
 
 ```text
 TayoTayo-server/
-├─ README.md                         실행·구성 안내
-├─ TayoTayo_실행용_회의반영.sql      MySQL 스키마와 데모 시드
-├─ TayoTayo_회의결정_반영_ERDCloud.sql ERDCloud용 데이터 모델
-├─ TayoTayo_OpenAPI_3.0.json         API 정의 파일
-└─ backend/
-   ├─ start-server.bat               Windows 실행 시작점
-   ├─ run-server.ps1                 접속 설정, 빌드, 서버 구동
-   ├─ build.gradle.kts               Java·Spring 의존성 및 빌드 설정
-   └─ src/main/
-      ├─ java/com/tayotayo/backend/  API 구현
-      └─ resources/                  설정과 정적 API 문서
+├─ backend/                      Spring Boot API (start-server.bat, run-server.ps1)
+│  └─ src/main/java/com/tayotayo/backend/
+│     ├─ auth · orgs · management · vehicles · children · invitations
+│     ├─ trips · operations · telemetry
+│     └─ guardian · attendance · pickups · sharing · announcements · notifications
+├─ web/                          관리자 웹 서브모듈
+├─ docs/                         Swagger·DB·상세 안내
+├─ TayoTayo_실행용_회의반영.sql   스키마 + 데모 데이터
+└─ TayoTayo_OpenAPI_3.0.json     API 정의
 ```
 
-`backend/.secrets/server.properties`는 첫 실행 때 생성하는 로컬 설정 파일입니다. DB 비밀번호와 Firebase 설정을 담으며 저장소에 올리지 않습니다. Gradle의 `.gradle/`, 빌드 산출물 `build/`도 실행 과정에서 생성됩니다.
+패키지별 역할, 계정·운행·보호자 데이터 흐름, 테이블 묶음, 관리자 운영 순서는 [서버 구조와 상세 사용 방법](docs/SERVER_GUIDE.md)에 정리했습니다.
 
-### 서버 기술과 요청 구조
+## 현재 범위와 유의점
 
-- Java 21과 Spring Boot 4.1.2를 사용합니다. API는 Spring MVC 컨트롤러가 HTTP 요청을 받고, 서비스·저장소 또는 `JdbcTemplate`으로 MySQL을 읽고 씁니다.
-- DB 연결은 `backend/src/main/resources/application.yml`의 환경 변수 기본값을 사용합니다. 기본 DB는 `tayotayo_dev`, 주소는 로컬 MySQL `127.0.0.1:3306`입니다.
-- API 경로의 기본 접두어는 `/api/v1`입니다. Swagger/OpenAPI 접속, 인증, API 영역과 호출 방법은 [Swagger 사용 안내](./docs/SWAGGER.md)를 참고하세요.
-- `/health`는 서버 응답 여부, `/health/database`는 DB 연결 확인용입니다.
-- 스키마는 서버가 자동 생성하거나 변경하지 않습니다. 초기 SQL 또는 별도 DB 변경 작업으로 테이블을 준비해야 합니다.
+- 인증 코드 응답의 `debugCode`는 메일 서버가 없는 개발 설정입니다. 운영 인증 수단으로 쓰지 마세요.
+- access token은 개발용 메모리 저장소에 있어 서버를 재시작하면 만료됩니다. refresh token은 해시해 DB에 저장합니다. 비밀번호는 salt를 넣은 PBKDF2-HMAC-SHA256(120,000회)로 저장합니다.
+- 공개 운영 전에는 인증, 비밀값, HTTPS, 권한 정책을 따로 점검해야 합니다.
+- 데이터가 있는 DB는 실행용 SQL을 다시 돌려 올리지 말고, 백업 후 별도 migration으로 바꿉니다.
 
-### Java 코드 영역
+## 문서
 
-| 폴더 | 구현 역할 |
-| --- | --- |
-| `auth` | 이메일 인증 코드 발급·확인, 회원가입·로그인, access/refresh token, 내 계정·동의 정보 |
-| `orgs` | 기관 생성과 조회·수정, 로그인 사용자의 기관 목록 |
-| `management` | 기관의 원아·정류장·노선 CRUD, 정류장 순서 설정, 직원 목록, 기기 푸시 토큰 등록 |
-| `vehicles` | 차량 생성·조회·수정, 차량 페어링 코드 발급 및 기기 연결 |
-| `children` | 원아의 노선·차량·정류장·요일별 배정, 보호자 연결 조회·해제 |
-| `invitations` | 교직원 초대와 수락, 원아 보호자 초대와 수락 |
-| `trips` | 날짜별 운행 생성·조회, 출발·복귀·종료·취소, 정류장과 원아 스냅샷, 운행 이벤트 |
-| `operations` | 운행 경로 순서 변경 이력, 기관 인계 기록 조회 |
-| `telemetry` | 차량 위치 기록과 내비게이션 ETA 스냅샷·정류장별 ETA 저장 |
-| `guardian` | 보호자 본인에게 연결된 원아의 오늘 운행·이력·상세 조회 |
-| `attendance` | 보호자의 결석·미탑승·정류장 변경 등 요청과 기관의 승인·반려 |
-| `pickups` | 보호자 지정 인계자 등록, 기관 검토, 날짜별 픽업 대상 관리 |
-| `sharing` | 제한된 운행 공유 링크, 링크 철회, 보호자 응답 전화 요청 |
-| `announcements` | 기관 공지와 보호자 알림 목록·읽음 처리 |
-| `notifications` | 알림 생성·중복 방지와 Firebase Cloud Messaging 전송, FCM 드라이런 |
-| `config` | OpenAPI/Swagger 문서 구성 |
-
-공통 진입 클래스는 `TayoTayoBackendApplication.java`입니다. `ApiAuthorizationInterceptor`와 `AccessTokenStore`가 API 사용자 인증을 보조하고, 차량에서 오는 요청은 `X-Vehicle-Credential` 헤더를 확인합니다.
-
-### 주요 데이터 흐름
-
-#### 계정과 기관
-
-1. `POST /api/v1/auth/email-verifications`가 개발용 인증 코드를 발급합니다. 현재 실제 이메일 발송 연결은 없습니다.
-2. 인증 확인 후 `POST /api/v1/auth/signup`으로 계정을 만듭니다.
-3. `POST /api/v1/auth/login`은 `ADMIN_WEB`, `GUARDIAN_APP`, `TEACHER_APP` 클라이언트 유형을 받아 토큰을 돌려줍니다.
-4. 로그인 계정이 기관을 생성하면 해당 계정은 기관의 `OWNER`로 등록됩니다.
-5. 이후 기관 소속 권한과 아이 연결 여부를 기준으로 데이터 범위를 확인합니다.
-
-비밀번호는 임의 salt를 사용한 PBKDF2-HMAC-SHA256(120,000회) 형식으로 저장됩니다. access token은 현재 개발용 메모리 저장소라 서버를 재시작하면 기존 access token이 만료됩니다. refresh token은 해시한 값으로 DB 세션에 저장됩니다.
-
-#### 원아·정류장·노선 배정
-
-기관 관리자는 원아와 차량, 위치 좌표가 있는 정류장을 등록하고 등원(`PICK_UP`)·하원(`DROP_OFF`) 노선을 구성합니다. 노선은 차량과 출발 시각 및 순서가 정해진 정류장 목록을 가집니다. 원아 배정은 노선·차량·정류장·요일·적용 기간을 연결합니다. 운행 생성 시 선택 날짜에 유효한 배정만 운행 원아 명단에 포함됩니다.
-
-#### 운행 및 차량 앱
-
-1. 기관이 차량을 등록하고 6자리 페어링 코드를 발급합니다. 기본 코드는 10분 후 만료합니다.
-2. 차량 앱이 `POST /api/v1/vehicle/pair`에 코드를 보내면 서버는 차량 기기를 등록하고 평문 credential을 한 번 반환합니다. DB에는 credential의 SHA-256만 저장합니다.
-3. 페어링된 차량으로 날짜·노선을 선택해 운행을 생성합니다. 운행에는 당시 정류장 순서와 원아 정보를 복사해 기록합니다.
-4. 차량 앱은 credential을 `X-Vehicle-Credential` 헤더에 넣어 오늘 운행을 가져오고, 출발·정류장 도착·완료·복귀와 탑승/하차 이벤트를 보냅니다.
-5. 운행 상태는 준비(`PREPARING`) → 운행 중(`IN_PROGRESS`) → 복귀(`RETURNING`) → 완료(`COMPLETED`) 흐름을 가집니다. 준비 상태에서 취소하면 `CANCELLED`가 됩니다.
-6. 위치 API는 좌표·시각·속도·기어·출처를 기록합니다. ETA는 별도 스냅샷과 정류장 항목으로 보관합니다. 경로 안내와 ETA 수신이 출결 기록을 자동으로 대신하지 않습니다.
-
-#### 보호자 기능과 알림
-
-보호자 초대는 기관이 이메일·관계를 지정해 발급하고, 초대 대상자가 계정을 만든 후 코드를 수락해야 아이와 연결됩니다. 보호자 API는 연결된 자녀 범위에서 운행 진행, 출결 요청, 지정 인계자, 일별 픽업 대상, 공유 링크, 알림을 처리합니다. 공유 링크는 토큰을 해시해 저장하고 보호자가 취소할 수 있습니다. 알림은 DB에 먼저 기록하며 Firebase 설정과 실제 기기 토큰이 있을 때 FCM으로 전달합니다.
-
-### 데이터베이스 구성
-
-실행용 SQL은 MySQL 8.0.13 이상을 대상으로 `tayotayo_dev` 데이터베이스와 외래 키를 포함한 테이블을 만듭니다. 테이블별 역할과 관계, 시드 없는 초기화, 연결 설정과 백업 주의사항은 [데이터베이스 안내](./docs/DATABASE.md)를 참고하세요. 주요 데이터 묶음은 다음과 같습니다.
-
-- **기관 운영:** `organizations`, `org_staff`, `vehicles`, `vehicle_devices`, `stops`, `routes`, `route_stops`
-- **계정·관계:** `users`, `auth_sessions`, `email_verifications`, `staff_invitations`, `guardian_invitations`, `child_guardians`, `user_consents`
-- **원아 배정:** `children`, `child_route_assignments`, `authorized_pickup_persons`, `daily_pickups`, `attendance_requests`
-- **운행 기록:** `trips`, `trip_stops`, `trip_children`, `trip_events`, `trip_route_revisions`, `trip_checklist_items`, `org_handover_records`
-- **위치·알림:** `trip_location_samples`, `trip_eta_snapshots`, `trip_eta_entries`, `notifications`, `notification_deliveries`, `push_devices`, `share_links`, `guardian_call_requests`, `org_announcements`
-- **정책:** `policy_documents`
-
-운행과 인계 이력은 과거 상태를 보존하도록 외래 키와 삭제 제한을 둡니다. 기관·정류장·노선·원아는 일부 항목에서 상태 변경이나 soft delete를 사용합니다. 테이블 정의 및 참조 관계의 기준은 실행용 SQL이며, ERDCloud SQL은 시각화/모델 가져오기에 쓰는 별도 산출물입니다.
-
-### 설정 파일과 외부 연동
-
-| 설정 | 역할 | 기본/주의 |
-| --- | --- | --- |
-| `DB_URL` | JDBC 접속 주소 | `jdbc:mysql://127.0.0.1:3306/tayotayo_dev?...` |
-| `DB_USERNAME`, `DB_PASSWORD` | MySQL 로그인 | `start-server.bat` 첫 실행 때 입력해 로컬 파일에 저장 |
-| `FIREBASE_ENABLED` | FCM 전송 사용 여부 | 기본 `false` |
-| `FIREBASE_CREDENTIALS_PATH` | Firebase Admin 서비스 계정 JSON 경로 | 저장소 바깥의 키 파일을 지정 |
-| `FIREBASE_PROJECT_ID` | Firebase 프로젝트 ID | 서비스 계정의 `project_id`와 일치해야 함 |
-| `FIREBASE_TEST_ENDPOINT_ENABLED` | 개발용 FCM 드라이런 API | 기본 `false`; 확인 후 꺼 두기 |
-
-서버는 Kakao 지도 검색을 직접 제공하지 않습니다. 관리자 웹이 위치 검색을 중계하며, Kakao REST 키 설정과 검색 동작은 웹 저장소 설명을 따릅니다. Firebase 실제 전송에는 같은 프로젝트의 앱 토큰과 서버 서비스 계정이 필요합니다. 서비스 계정 JSON이나 실제 토큰·비밀번호를 Git에 넣지 마세요.
-
-### 현재 구현 범위와 유의점
-
-- 이 저장소는 API 백엔드이며 관리자 웹·보호자 앱의 화면 소스는 포함하지 않습니다.
-- 인증 코드 응답에 `debugCode`가 포함되는 것은 메일 서버가 연결되지 않은 개발 설정입니다. 운영 인증 수단으로 사용하지 마세요.
-- access token 메모리 저장소, 개발용 초기 비밀번호/데모 credential, 선택적 FCM 설정은 로컬 개발을 위한 것입니다. 공개 운영 서비스로 배포하기 전 인증·비밀값·HTTPS·권한 정책을 별도 점검해야 합니다.
-- 위치와 ETA는 차량 앱이 제출한 값과 원천·시각을 기록합니다. 서버가 내비 경로를 계산하거나 차량의 안전 상태를 판정하는 기능으로 간주하면 안 됩니다.
-- 기존 DB에 실행용 전체 SQL을 다시 돌리는 방식으로 버전을 올리지 마세요. 데이터가 있는 환경은 백업 후 별도 migration 계획을 사용해야 합니다.
-## 상세 사용 방법
-
-이 절은 서버 API를 실제 서비스 흐름에 맞춰 사용할 때의 순서입니다. 관리자 웹에서 수행하는 방법은 [TayoTayo-web README](https://github.com/Hyundai-Mobility-Challenge/TayoTayo-web), Swagger의 요청 필드와 응답 형식은 [Swagger 안내](./docs/SWAGGER.md), 테이블과 SQL 사용법은 [DB 안내](./docs/DATABASE.md)를 함께 참고하세요.
-
-### 관리자 운영 흐름
-
-1. **계정과 기관:** 관리자가 계정을 만들고 로그인한 뒤 기관을 등록합니다. 첫 기관을 만든 사용자가 해당 기관의 소유자 관리자가 됩니다.
-2. **기초 데이터:** 기관에 차량과 좌표가 있는 정류장을 등록합니다. 정류장은 주소만이 아니라 지도 검색 결과의 위도·경도까지 선택해야 합니다.
-3. **노선 구성:** 차량, 운행 방향, 출발 시간, 정류장 방문 순서를 정해 노선을 만듭니다. 등원은 `PICK_UP`, 하원은 `DROP_OFF`입니다.
-4. **원아 배정:** 원아를 등록하고 노선·차량·정류장과 운행 요일·적용 기간을 연결합니다. 운행 예정일이 요일과 기간에 포함되어야 명단에 들어갑니다.
-5. **기기 연결:** 차량 페어링 코드를 발급해 차량 앱을 연결합니다. 보호자에게는 원아별 초대 코드를 발급하고, 보호자가 자기 계정을 만든 뒤 해당 아이와 연결합니다.
-6. **운행 생성:** 날짜와 노선을 선택해 운행을 만듭니다. 생성 시 그 날짜에 유효한 원아 배정과 노선 정류장 순서가 운행 기록으로 복사됩니다.
-7. **운행 처리:** 차량 앱이 오늘 운행을 불러와 준비·출발·정류장 도착·원아 이벤트·복귀·종료를 순서대로 기록합니다. 상태가 맞지 않는 요청은 서버가 거절할 수 있으니 작업 뒤 운행 조회 API로 최신 상태를 확인합니다.
-
-### Swagger로 API 흐름을 확인하기
-
-1. 서버와 DB를 실행하고 `/health/database`가 정상인지 확인합니다.
-2. `/swagger-ui.html`을 열고 계정을 생성하거나 기존 개발 계정으로 로그인합니다. 개발 가입 코드는 이메일로 보내지 않고 인증 요청 응답의 `debugCode`에서 확인합니다.
-3. **Authorize**에 로그인 `accessToken`을 등록한 뒤 기관·차량·정류장·노선·원아 관리 API를 호출합니다.
-4. 차량 API를 시험할 때는 관리자 인증으로 페어링 코드를 발급하고 `/vehicle/pair`를 호출합니다. 응답의 `vehicleCredential`을 차량 인증으로 등록합니다.
-5. 리소스 생성 응답에서 ID를 복사해 다음 요청에 사용합니다. 실제 데이터를 바꾸는 POST/PUT/PATCH/DELETE 요청은 개발 DB에서만 시험합니다.
-
-주소, 인증 헤더, 대표 API, 오류 코드는 [Swagger / OpenAPI 사용 안내](./docs/SWAGGER.md)에 설명되어 있습니다.
-
-### DB에서 결과 확인하기
-
-Workbench에서 `tayotayo_dev`를 선택해 `SHOW TABLES;`로 테이블을 확인합니다. 기관, 노선, 원아, 운행을 조회할 때는 [데이터베이스 안내](./docs/DATABASE.md)의 예시처럼 필요한 컬럼과 날짜를 제한해 조회하세요. 운행 기준 정보와 당시 복사된 스냅샷은 서로 다른 테이블에 있습니다. 현재 노선 배정과 과거 운행 명단이 달라 보여도 과거 운행의 스냅샷은 생성 당시 내용을 보존하기 위한 것입니다.
-
-운행·출결·보호자 연결을 확인하려고 DB를 직접 수정하지 마세요. API가 상태 전이와 권한을 확인하도록 하고, 이력 데이터는 삭제하지 말고 서버 기능으로 취소·철회·비활성화하세요.
-
+- [서버 구조와 상세 사용 방법](docs/SERVER_GUIDE.md)
+- [Swagger / OpenAPI 사용 안내](docs/SWAGGER.md)
+- [데이터베이스 안내](docs/DATABASE.md)
